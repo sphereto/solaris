@@ -1,0 +1,12 @@
+node_modules
+dist
+dev-dist
+*.log
+.DS_Store
+.env
+.env.*
+# Android build output and signing material (added in the Android phase)
+android/app/build
+android/.gradle
+*.keystore
+*.jks

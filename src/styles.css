@@ -1,0 +1,245 @@
+:root {
+  color-scheme: dark;
+  --bg: #03040a;
+  --ink: #d7def7;
+  --dim: #7f8bb3;
+  --amber: #ffb347;
+  --line: rgba(160, 176, 230, 0.28);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  color: var(--ink);
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ---- 3D stage ---- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+}
+
+.stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none; /* we handle taps ourselves; no browser zoom or pan */
+  outline: none;
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  color: var(--dim);
+}
+
+/* ---- HUD ---- */
+
+.hud {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none; /* taps fall through to the canvas */
+  padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+.hud-top,
+.hud-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hud-bottom {
+  align-items: flex-end;
+}
+
+.readout {
+  font-size: clamp(18px, 4.6vw, 28px);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.85);
+}
+
+.counter,
+.credits-link {
+  pointer-events: auto;
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.counter {
+  min-height: 52px;
+  padding: 0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.counter:hover {
+  color: #fff;
+}
+
+.credits-link {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+  opacity: 0.7;
+  padding: 10px 8px;
+}
+
+.credits-link:hover {
+  opacity: 1;
+}
+
+/* ---- Date dial ---- */
+
+.dial {
+  pointer-events: auto;
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 340px;
+  height: 52px;
+  border-radius: 26px;
+  border: 1px solid var(--line);
+  background: rgba(10, 14, 30, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+.dial:active {
+  cursor: grabbing;
+}
+
+.dial:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.dial-ticks {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(90deg, rgba(190, 204, 255, 0.4) 0 1px, transparent 1px),
+    linear-gradient(90deg, rgba(235, 240, 255, 0.85) 0 2px, transparent 2px);
+  background-size:
+    14px 28%,
+    98px 50%;
+  background-repeat: repeat-x;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+}
+
+.dial-needle {
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  bottom: 14%;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--amber);
+  box-shadow: 0 0 8px rgba(255, 179, 71, 0.7);
+  pointer-events: none;
+}
+
+/* ---- Credits ---- */
+
+.credits-backdrop {
+  pointer-events: auto;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 3, 8, 0.72);
+}
+
+.credits-panel {
+  width: min(420px, 100%);
+  max-height: 85vh;
+  overflow: auto;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #090c18;
+  font-size: 13px;
+  line-height: 1.55;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.credits-panel h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.credits-panel ul {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.credits-panel a {
+  color: #9db7ff;
+}
+
+.credits-intro,
+.credits-note {
+  margin: 0;
+  color: var(--dim);
+}
+
+.credits-close {
+  margin-top: 14px;
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 18px;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dial {
+    backdrop-filter: none;
+  }
+}
