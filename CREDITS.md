@@ -44,3 +44,9 @@ If you want to swap in the official downloads, replace the files above with the 
 - [Vite](https://vite.dev/) and [vite-plugin-pwa](https://vite-pwa-org.netlify.app/), MIT. Build and offline support.
 
 The in-app credits panel (`src/credits.ts`) must stay in sync with this file.
+
+## Space pictures and data
+
+Astronomy Picture of the Day and Mars Rover Photos and EPIC Earth images via the NASA Open APIs (https://api.nasa.gov/).
+Images may carry their own credit, which the app shows next to each picture.
+See the NASA media usage guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/

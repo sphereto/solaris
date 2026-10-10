@@ -43,6 +43,16 @@ export default defineConfig({
               expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
+          {
+            // APOD images are large and never change for a given date.
+            urlPattern: ({ url }) => url.hostname === 'apod.nasa.gov' || url.hostname.endsWith('.nasa.gov'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'solaris-nasa-images',
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
     }),

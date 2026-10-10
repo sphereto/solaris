@@ -6,7 +6,7 @@ import { Body, EclipticLongitude, HelioDistance } from 'astronomy-engine';
  *
  * Positions come from astronomy-engine, which is accurate to roughly one
  * arcminute. Angles are heliocentric ecliptic longitude measured
- * counter-clockwise as seen from the ecliptic north pole (J2000 equinox).
+ * counter-clockwise as seen from the ecliptic north pole (equinox of date).
  */
 
 export const PLANETS = [

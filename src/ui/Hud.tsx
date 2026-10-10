@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { dateForOffset, formatClock, formatDate, formatDayOffset } from '../ephemeris/planets';
 import { timeStore, useTargetOffset } from '../state/time';
 import { Credits } from './Credits';
+import { DiscoverSheet } from './DiscoverSheet';
 import { TimeDial } from './TimeDial';
 
 function useNow(intervalMs: number): Date {
@@ -17,7 +18,7 @@ function useNow(intervalMs: number): Date {
 function useDateControls() {
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
-      if ((e.target as HTMLElement | null)?.closest('.credits-panel')) return;
+      if ((e.target as HTMLElement | null)?.closest('.credits-panel, .discover-sheet, .viewer')) return;
       e.preventDefault();
       const clamped = Math.max(-240, Math.min(240, e.deltaY));
       timeStore.nudge(clamped * 0.04); // scroll down moves forward in time
@@ -44,6 +45,7 @@ export function Hud() {
   const offset = useTargetOffset();
   const now = useNow(15_000);
   const [showCredits, setShowCredits] = useState(false);
+  const [showDiscover, setShowDiscover] = useState(false);
   useDateControls();
 
   // Whole days, so the date and the "+N days" counter always agree.
@@ -75,6 +77,24 @@ export function Hud() {
         </button>
         <TimeDial />
       </div>
+
+      {showDiscover && <DiscoverSheet shown={shown} onClose={() => setShowDiscover(false)} />}
+      <button
+        className="discover-btn"
+        onClick={() => setShowDiscover((o) => !o)}
+        aria-expanded={showDiscover}
+      >
+        {showDiscover ? (
+          'Close'
+        ) : (
+          <>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <path d="M3 15l12-7 2 4-12 7zM15 8l5-3M9 18l-2 3M12 16l3 5" />
+            </svg>
+            Discover more
+          </>
+        )}
+      </button>
 
       {showCredits && <Credits onClose={() => setShowCredits(false)} />}
     </div>

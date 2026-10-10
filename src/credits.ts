@@ -32,4 +32,11 @@ export const CREDITS: CreditEntry[] = [
     license: 'MIT',
     licenseUrl: 'https://opensource.org/license/mit',
   },
+  {
+    title: 'Space pictures and data',
+    text: 'NASA Open APIs (Astronomy Picture of the Day, Mars Rover Photos, EPIC). Images may carry their own credit.',
+    url: 'https://api.nasa.gov/',
+    license: 'NASA media usage guidelines',
+    licenseUrl: 'https://www.nasa.gov/nasa-brand-center/images-and-media/',
+  },
 ];
