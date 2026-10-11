@@ -7,10 +7,12 @@ export interface LibraryState {
   total: number;
   busy: boolean;
   error: string | null;
+  retry: () => void;
 }
 
 export function useLibrary(query: string, year: number | null): LibraryState {
-  const [state, setState] = useState<LibraryState>({ items: null, total: 0, busy: true, error: null });
+  const [nonce, setNonce] = useState(0);
+  const [state, setState] = useState<Omit<LibraryState, 'retry'>>({ items: null, total: 0, busy: true, error: null });
 
   useEffect(() => {
     const ac = new AbortController();
@@ -24,7 +26,7 @@ export function useLibrary(query: string, year: number | null): LibraryState {
         setState((s) => ({ ...s, busy: false, error: messageFor(e instanceof NasaError ? e.kind : 'network') }));
       });
     return () => ac.abort();
-  }, [query, year]);
+  }, [query, year, nonce]);
 
-  return state;
+  return { ...state, retry: () => setNonce((n) => n + 1) };
 }

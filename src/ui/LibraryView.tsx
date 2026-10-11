@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLibrary } from '../discover/useLibrary';
+import { ErrorNote } from './ErrorNote';
 import { PhotoViewer, type ViewerItem } from './PhotoViewer';
 import { useDebounced } from './useDebounced';
 
@@ -17,7 +18,7 @@ export function LibraryView({ shown, onBack, onJump }: { shown: Date; onBack: ()
 
   const settledYear = useDebounced(dialYear, 500);
   const year = byYear ? settledYear : null;
-  const { items, total, busy, error } = useLibrary(query, year);
+  const { items, total, busy, error, retry } = useLibrary(query, year);
 
   useEffect(() => {
     setVisible(PAGE);
@@ -86,10 +87,13 @@ export function LibraryView({ shown, onBack, onJump }: { shown: Date; onBack: ()
         </button>
       </div>
 
-      {error && !busy && (
-        <p className="discover-error" role="status">
-          {error}
-        </p>
+      {error && !busy && <ErrorNote message={error} onRetry={retry} />}
+      {busy && !items && (
+        <div className="lib-grid" aria-hidden="true">
+          {Array.from({ length: 6 }, (_, i) => (
+            <span key={i} className="lib-card skeleton" />
+          ))}
+        </div>
       )}
       {items && items.length === 0 && !busy && !error && <p className="discover-note">No pictures found. Try another word{byYear ? ' or turn off the year filter' : ''}.</p>}
 

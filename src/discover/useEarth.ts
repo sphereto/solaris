@@ -8,10 +8,12 @@ export interface EarthState {
   images: EpicImage[];
   busy: boolean;
   error: string | null;
+  retry: () => void;
 }
 
 export function useEarth(requested: string): EarthState {
-  const [state, setState] = useState<EarthState>({ date: null, images: [], busy: true, error: null });
+  const [nonce, setNonce] = useState(0);
+  const [state, setState] = useState<Omit<EarthState, 'retry'>>({ date: null, images: [], busy: true, error: null });
 
   useEffect(() => {
     const ac = new AbortController();
@@ -27,7 +29,7 @@ export function useEarth(requested: string): EarthState {
       setState((s) => ({ ...s, busy: false, error: messageFor(e instanceof NasaError ? e.kind : 'network') }));
     });
     return () => ac.abort();
-  }, [requested]);
+  }, [requested, nonce]);
 
-  return state;
+  return { ...state, retry: () => setNonce((n) => n + 1) };
 }

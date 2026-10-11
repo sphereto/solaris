@@ -7,10 +7,12 @@ export interface NeoState {
   start: string | null;
   busy: boolean;
   error: string | null;
+  retry: () => void;
 }
 
 export function useNeo(start: string): NeoState {
-  const [state, setState] = useState<NeoState>({ objects: null, start: null, busy: true, error: null });
+  const [nonce, setNonce] = useState(0);
+  const [state, setState] = useState<Omit<NeoState, 'retry'>>({ objects: null, start: null, busy: true, error: null });
 
   useEffect(() => {
     const ac = new AbortController();
@@ -24,7 +26,7 @@ export function useNeo(start: string): NeoState {
         setState((s) => ({ ...s, busy: false, error: messageFor(e instanceof NasaError ? e.kind : 'network') }));
       });
     return () => ac.abort();
-  }, [start]);
+  }, [start, nonce]);
 
-  return state;
+  return { ...state, retry: () => setNonce((n) => n + 1) };
 }

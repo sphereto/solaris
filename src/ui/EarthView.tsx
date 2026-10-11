@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { formatDistance, formatLatLon } from '../discover/epic';
 import { localIso } from '../discover/nasa';
 import { useEarth } from '../discover/useEarth';
+import { ErrorNote } from './ErrorNote';
 import { PhotoViewer, type ViewerItem } from './PhotoViewer';
 import { useDebounced } from './useDebounced';
 
@@ -11,7 +12,7 @@ export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () =
   const [pick, setPick] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [viewing, setViewing] = useState(false);
-  const { date, images, busy, error } = useEarth(requested);
+  const { date, images, busy, error, retry } = useEarth(requested);
 
   useEffect(() => {
     setPick(0);
@@ -53,7 +54,7 @@ export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () =
       </button>
 
       <div className={`apod-frame earth-hero${busy ? ' is-busy' : ''}`}>
-        {hero ? <img key={hero.name} src={hero.jpg} alt={`Earth at ${hero.time} UTC`} decoding="async" /> : <div className="apod-empty" aria-hidden="true" />}
+        {hero ? <img key={hero.name} src={hero.jpg} alt={`Earth at ${hero.time} UTC`} decoding="async" /> : <div className={`apod-empty${busy ? ' skeleton' : ''}`} aria-hidden="true" />}
         <div className="apod-shade" />
         {hero && (
           <button
@@ -78,11 +79,7 @@ export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () =
           {moved && ' · nearest day with pictures'}
         </p>
       </div>
-      {error && !busy && (
-        <p className="discover-error" role="status">
-          {error}
-        </p>
-      )}
+      {error && !busy && <ErrorNote message={error} onRetry={retry} />}
 
       {hero && (hero.lat !== null || hero.distanceKm !== null) && (
         <p className="facts">
@@ -99,6 +96,13 @@ export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () =
         </div>
       )}
 
+      {busy && images.length === 0 && (
+        <div className="thumbs four" aria-hidden="true">
+          {Array.from({ length: 8 }, (_, i) => (
+            <span key={i} className="skeleton sk-thumb" />
+          ))}
+        </div>
+      )}
       <div className="thumbs four">
         {images.map((i, n) => (
           <button

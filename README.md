@@ -32,6 +32,7 @@
 | 🔭 [The science in five minutes](#science) | 🗺️ [Roadmap](#roadmap) |
 | 📋 [The planets at a glance](#planets) | 📖 [Glossary](#glossary) |
 | 🛠️ [Run it yourself](#develop) | 📜 [License and credits](#credits) |
+| 🛰️ [Discover: NASA pictures and data](#discover) | |
 
 <a id="what"></a>
 ## 🌌 What is Solaris?
@@ -291,6 +292,32 @@ pnpm preview      # serve the production build locally
 - **GitHub Pages:** push to `main`. The `Deploy` workflow builds with `BASE_PATH=/solaris/` and publishes. In *Settings → Pages* set the source to **GitHub Actions** once, and do **not** accept the suggested "Static HTML" or "Jekyll" starter workflow (it would publish your raw source files and show a blank page).
 - **Vercel:** import the repo. The defaults work (build `pnpm build`, output `dist`).
 
+<a id="discover"></a>
+## 🛰️ Discover: NASA pictures and data
+
+The **Discover more** button above the dial opens a sheet of live NASA material. Most of it follows the date on the dial.
+
+| Tile | What it shows | Follows the dial? | Source |
+|---|---|---|---|
+| Picture of the day | The day's astronomy picture, in a full-screen viewer | Yes | NASA APOD |
+| Earth today | Full-disc Earth pictures from a satellite 1.5 million km away, with a "play the day" button | Yes (nearest day with pictures) | NASA EPIC |
+| The Sun now | Live pictures of the Sun and the current storm level | No, always live | NASA SDO and NOAA |
+| Asteroids | Close approaches in the 7 days from the dial date, on a distance ruler | Yes | NASA NeoWs |
+| Image library | Search NASA's picture archive, optionally limited to the dial's year | Optional | NASA Image Library |
+| Exoplanets | Newest, nearest and Earth-sized worlds, with an orbit diagram | By discovery year | NASA Exoplanet Archive |
+
+**Setting up your NASA key**
+
+1. Get a free key at [api.nasa.gov](https://api.nasa.gov/).
+2. Locally, create `.env.local` with `VITE_NASA_API_KEY=your_key`. Without it the app falls back to NASA's shared `DEMO_KEY`, which runs out quickly.
+3. For the deployed site, add a repository secret named `NASA_API_KEY` (*Settings → Secrets and variables → Actions*). The Deploy workflow passes it to the build.
+
+The key is built into the page, so anyone can read it from the deployed site. NASA keys are free and rate limited; do not reuse one that matters.
+
+**Exoplanet data** is downloaded at build time, because the Exoplanet Archive does not allow requests from web pages. Run `pnpm data:exoplanets` (Node 22.18 or newer) and commit `src/data/exoplanets.json`. The Deploy workflow also refreshes it on every deploy and every Monday, and keeps the committed copy if the download fails.
+
+**Not included:** NASA's Mars Rover Photos service no longer exists, and DONKI space weather does not answer browser requests, so neither is used.
+
 <a id="honest"></a>
 ## 🎯 What is real, what is not
 
@@ -318,6 +345,8 @@ pnpm preview      # serve the production build locally
 - [x] Date dial with momentum, wheel and keyboard control
 - [x] Tap to tilt, double-tap to reset
 - [x] Installable and offline-ready
+- [x] Discover: NASA pictures, Earth, the Sun, asteroids, image search and exoplanets
+- [ ] Discover: Mars rover photos (needs a new data source)
 - [ ] Tap a planet for its name, distance and orbital speed
 - [ ] Play / pause time, and jump to a typed date
 - [ ] Event finder: next opposition, conjunction, equinox, solstice

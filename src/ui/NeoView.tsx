@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { localIso } from '../discover/nasa';
 import { type NeoObject, type SortKey, closestOf, formatKm, formatLunar, formatSize, ldPosition, neoWindow, sizeComparison, sortNeo } from '../discover/neo';
 import { useNeo } from '../discover/useNeo';
+import { ErrorNote } from './ErrorNote';
 import { useDebounced } from './useDebounced';
 
 const PAGE = 10;
@@ -45,7 +46,7 @@ function Facts({ o }: { o: NeoObject }) {
 /** Asteroids passing Earth in the seven days starting at the dial date. */
 export function NeoView({ shown, onBack, onJump }: { shown: Date; onBack: () => void; onJump: (isoDate: string) => void }) {
   const requested = useDebounced(localIso(shown), 350);
-  const { objects, start, busy, error } = useNeo(requested);
+  const { objects, start, busy, error, retry } = useNeo(requested);
   const [sort, setSort] = useState<SortKey>('date');
   const [visible, setVisible] = useState(PAGE);
 
@@ -67,10 +68,14 @@ export function NeoView({ shown, onBack, onJump }: { shown: Date; onBack: () => 
         <h2>Asteroids</h2>
         <p>{win ? `Passing Earth ${win.start} to ${win.end}` : 'Loading…'}</p>
       </div>
-      {error && !busy && (
-        <p className="discover-error" role="status">
-          {error}
-        </p>
+      {error && !busy && <ErrorNote message={error} onRetry={retry} />}
+
+      {busy && !objects && (
+        <div aria-hidden="true">
+          <div className="skeleton sk-block" style={{ height: 210, marginTop: 16 }} />
+          <div className="skeleton sk-block" style={{ height: 84, marginTop: 12 }} />
+          <div className="skeleton sk-block" style={{ height: 84, marginTop: 12 }} />
+        </div>
       )}
 
       {closest && (

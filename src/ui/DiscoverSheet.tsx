@@ -7,6 +7,7 @@ import { timeStore, useTargetOffset } from '../state/time';
 import { EarthView } from './EarthView';
 import { ExoplanetView } from './ExoplanetView';
 import { LibraryView } from './LibraryView';
+import { ErrorNote } from './ErrorNote';
 import { MarsView } from './MarsView';
 import { NeoView } from './NeoView';
 import { SunView } from './SunView';
@@ -23,7 +24,7 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
 
   // Wait for the dial to settle so scrubbing does not spend the API rate limit.
   const date = useDebounced(apodDateFor(shown), 350);
-  const { apod, busy, error } = useApod(date);
+  const { apod, busy, error, retry } = useApod(date);
   const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState(false);
   const clamped = localIso(shown) !== date;
@@ -86,7 +87,7 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
               {picture ? (
                 <img src={picture} alt={apod?.title ?? ''} loading="lazy" decoding="async" />
               ) : (
-                <div className="apod-empty" aria-hidden="true" />
+                <div className={`apod-empty${busy ? ' skeleton' : ''}`} aria-hidden="true" />
               )}
               <div className="apod-shade" />
               {apod?.mediaType === 'image' && (
@@ -98,11 +99,7 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
               </div>
             </div>
 
-            {error && !busy && (
-              <p className="discover-error" role="status">
-                {error}
-              </p>
-            )}
+            {error && !busy && <ErrorNote message={error} onRetry={retry} />}
 
             {apod && (
               <>

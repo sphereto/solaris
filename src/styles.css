@@ -1285,3 +1285,56 @@ body {
   font-size: 12px;
   color: var(--dim);
 }
+
+/* ---- Discover: polish ---- */
+
+.retry-btn {
+  padding: 0;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.skeleton {
+  background: linear-gradient(100deg, #131829 30%, #1d2440 50%, #131829 70%);
+  background-size: 220% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+.sk-block {
+  border-radius: 20px;
+}
+
+.sk-thumb {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.discover-sheet button:focus-visible,
+.discover-sheet a:focus-visible,
+.discover-sheet input:focus-visible,
+.discover-btn:focus-visible,
+.viewer button:focus-visible,
+.viewer a:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

@@ -90,6 +90,13 @@ export function ExoplanetView({ shown, onBack }: { shown: Date; onBack: () => vo
         </p>
       )}
 
+      {!snap && (
+        <div aria-hidden="true">
+          <div className="skeleton sk-block" style={{ aspectRatio: '3 / 2', marginTop: 16 }} />
+          <div className="skeleton sk-block" style={{ height: 56, marginTop: 14 }} />
+        </div>
+      )}
+
       {snap && !missing && (
         <>
           <div className="chips" role="group" aria-label="Which planets">

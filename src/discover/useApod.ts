@@ -5,10 +5,12 @@ export interface ApodView {
   apod: Apod | null; // last good picture, kept on screen while the next one loads
   busy: boolean;
   error: string | null;
+  retry: () => void;
 }
 
 export function useApod(date: string): ApodView {
-  const [view, setView] = useState<ApodView>(() => {
+  const [nonce, setNonce] = useState(0);
+  const [view, setView] = useState<Omit<ApodView, 'retry'>>(() => {
     const cached = readCachedApod(date);
     return { apod: cached, busy: !cached, error: null };
   });
@@ -32,7 +34,7 @@ export function useApod(date: string): ApodView {
         setView((v) => ({ ...v, busy: false, error: messageFor(kind) }));
       });
     return () => ac.abort();
-  }, [date]);
+  }, [date, nonce]);
 
-  return view;
+  return { ...view, retry: () => setNonce((n) => n + 1) };
 }
