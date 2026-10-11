@@ -3,17 +3,19 @@ import { formatDate } from '../ephemeris/planets';
 import { offsetForIsoDate } from '../discover/jump';
 import { apodDateFor, localIso } from '../discover/nasa';
 import { useApod } from '../discover/useApod';
-import { timeStore } from '../state/time';
+import { timeStore, useTargetOffset } from '../state/time';
 import { EarthView } from './EarthView';
 import { MarsView } from './MarsView';
+import { SunView } from './SunView';
 import { PhotoViewer } from './PhotoViewer';
 import { useDebounced } from './useDebounced';
 
-type View = 'home' | 'mars' | 'earth';
+type View = 'home' | 'mars' | 'earth' | 'sun';
 
 /** Discover sheet. It follows the date the dial is pointing at. */
 export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => void }) {
   const [view, setView] = useState<View>('home');
+  const offset = useTargetOffset();
   const ref = useRef<HTMLElement>(null);
 
   // Wait for the dial to settle so scrubbing does not spend the API rate limit.
@@ -50,6 +52,8 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
     <section className="discover-sheet" aria-label="Discover" ref={ref}>
       {view === 'mars' ? (
         <MarsView shown={shown} onBack={() => setView('home')} onJump={jump} />
+      ) : view === 'sun' ? (
+        <SunView onBack={() => setView('home')} onJump={jump} offsetDays={Math.round(offset)} />
       ) : view === 'earth' ? (
         <EarthView shown={shown} onBack={() => setView('home')} onJump={jump} />
       ) : (
@@ -129,15 +133,16 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
 
           <h3 className="explore-title">Explore</h3>
           <div className="tiles">
-            <button className="tile tile-mars" onClick={() => setView('mars')}>
-              <span className="tile-art" aria-hidden="true" />
-              <strong>Mars</strong>
-              <small>Rover photos</small>
-            </button>
+            {/* Mars tile hidden: NASA's Mars Rover Photos service is gone. Re-add once the data layer moves to JPL's feed. */}
             <button className="tile tile-earth" onClick={() => setView('earth')}>
               <span className="tile-art" aria-hidden="true" />
               <strong>Earth today</strong>
               <small>Full disc · DSCOVR</small>
+            </button>
+            <button className="tile tile-sun" onClick={() => setView('sun')}>
+              <span className="tile-art" aria-hidden="true" />
+              <strong>The Sun now</strong>
+              <small>Live · space weather</small>
             </button>
           </div>
         </>

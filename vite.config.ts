@@ -44,8 +44,10 @@ export default defineConfig({
             },
           },
           {
-            // APOD images are large and never change for a given date.
-            urlPattern: ({ url }) => url.hostname === 'apod.nasa.gov' || url.hostname.endsWith('.nasa.gov'),
+            // Dated NASA pictures never change. Images only (not API replies), and never the
+            // "latest" Sun picture, which changes every few minutes.
+            urlPattern: ({ url, request }) =>
+              request.destination === 'image' && url.hostname.endsWith('.nasa.gov') && url.hostname !== 'sdo.gsfc.nasa.gov',
             handler: 'CacheFirst',
             options: {
               cacheName: 'solaris-nasa-images',

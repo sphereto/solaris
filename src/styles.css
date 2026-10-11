@@ -873,3 +873,17 @@ body {
   font-size: 13px;
   color: #b9c2e0;
 }
+
+/* ---- Discover: the Sun ---- */
+
+.tile-sun .tile-art {
+  background: radial-gradient(circle at 50% 50%, #ffd27a, #e8761c 45%, #4a1608 80%);
+}
+
+.pill {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #b9c2e0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}

@@ -1,12 +1,13 @@
 /**
- * NASA EPIC (Earth Polychromatic Imaging Camera on DSCOVR). Metadata comes
- * from the api.nasa.gov mirror (same key as the rest). Pictures load from the
- * EPIC archive, which needs no key and does not count against the rate limit.
+ * NASA EPIC (Earth Polychromatic Imaging Camera on DSCOVR). Metadata and pictures
+ * come from the EPIC site, which needs no key. If that fails, the api.nasa.gov
+ * mirror (which uses your key) is tried.
  */
 import { nearestDate } from './dates';
 import { NasaError, getJson, nasaKey } from './nasa';
 
-const API = 'https://api.nasa.gov/EPIC/api/natural';
+const DIRECT = 'https://epic.gsfc.nasa.gov/api/natural';
+const MIRROR = 'https://api.nasa.gov/EPIC/api/natural';
 const ARCHIVE = 'https://epic.gsfc.nasa.gov/archive/natural';
 
 export interface EpicImage {
@@ -21,12 +22,16 @@ export interface EpicImage {
   png: string;
 }
 
-export function buildEpicDatesUrl(key: string): string {
-  return `${API}/all?${new URLSearchParams({ api_key: key })}`;
-}
+export const epicDatesPath = '/all';
+export const epicDayPath = (date: string) => `/date/${date}`;
 
-export function buildEpicDayUrl(date: string, key: string): string {
-  return `${API}/date/${date}?${new URLSearchParams({ api_key: key })}`;
+async function epicJson(path: string, signal: AbortSignal): Promise<unknown> {
+  try {
+    return await getJson(`${DIRECT}${path}`, signal);
+  } catch (e) {
+    if (signal.aborted) throw e;
+    return getJson(`${MIRROR}${path}?${new URLSearchParams({ api_key: nasaKey() })}`, signal);
+  }
 }
 
 export function epicImageUrl(kind: 'thumbs' | 'jpg' | 'png', date: string, name: string): string {
@@ -92,7 +97,7 @@ const dayCache = new Map<string, EpicImage[]>();
 /** The list of dates is fetched once per session. */
 export function loadEpicDates(): Promise<string[]> {
   if (!datesPromise) {
-    const p = getJson(buildEpicDatesUrl(nasaKey()), new AbortController().signal).then((raw) => {
+    const p = epicJson(epicDatesPath, new AbortController().signal).then((raw) => {
       const dates = parseEpicDates(raw);
       if (dates.length === 0) throw new NasaError('shape');
       return dates;
@@ -108,7 +113,7 @@ export function loadEpicDates(): Promise<string[]> {
 export async function loadEpicDay(date: string, signal: AbortSignal): Promise<EpicImage[]> {
   const hit = dayCache.get(date);
   if (hit) return hit;
-  const images = parseEpicImages(await getJson(buildEpicDayUrl(date, nasaKey()), signal));
+  const images = parseEpicImages(await epicJson(epicDayPath(date), signal));
   dayCache.set(date, images);
   return images;
 }
