@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1' # Mondays: refresh the exoplanet data
 
 permissions:
   contents: read
@@ -25,6 +27,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Refresh exoplanet snapshot
+        run: node scripts/fetch-exoplanets.ts || echo "::warning::Exoplanet refresh failed, using the committed copy"
       - run: pnpm test
       - run: pnpm build
         env:

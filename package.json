@@ -10,7 +10,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "data:exoplanets": "node scripts/fetch-exoplanets.ts"
   },
   "dependencies": {
     "astronomy-engine": "^2.1.19",

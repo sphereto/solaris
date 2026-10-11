@@ -49,5 +49,6 @@ The in-app credits panel (`src/credits.ts`) must stay in sync with this file.
 
 Astronomy Picture of the Day, EPIC Earth images, NeoWs asteroid data and the NASA Image and Video Library via the NASA Open APIs (https://api.nasa.gov/).
 Sun pictures: NASA Solar Dynamics Observatory (https://sdo.gsfc.nasa.gov/). Space weather numbers: NOAA Space Weather Prediction Center (https://www.swpc.noaa.gov/).
+Exoplanet data: NASA Exoplanet Archive (https://exoplanetarchive.ipac.caltech.edu/), downloaded at build time.
 Images may carry their own credit, which the app shows next to each picture.
 See the NASA media usage guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/
