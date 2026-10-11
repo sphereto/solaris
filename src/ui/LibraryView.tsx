@@ -8,9 +8,9 @@ const TOPICS = ['Galaxies', 'Nebulae', 'Moon', 'Mars', 'Aurora', 'Space Station'
 const PAGE = 12;
 
 /** Search NASA's picture archive. Optionally limited to the year on the dial. */
-export function LibraryView({ shown, onBack, onJump }: { shown: Date; onBack: () => void; onJump: (isoDate: string) => void }) {
+export function LibraryView({ shown, onBack, onJump, initialQuery }: { shown: Date; onBack: () => void; onJump: (isoDate: string) => void; initialQuery?: string }) {
   const dialYear = shown.getFullYear();
-  const [query, setQuery] = useState('Galaxies');
+  const [query, setQuery] = useState(initialQuery ?? 'Galaxies');
   const [text, setText] = useState('');
   const [byYear, setByYear] = useState(false);
   const [visible, setVisible] = useState(PAGE);

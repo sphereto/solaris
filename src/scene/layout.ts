@@ -54,3 +54,54 @@ export function nextPitchIndex(index: number): number {
 export function visualSpin(periodHours: number): number {
   return 0.6 * Math.pow(24 / Math.abs(periodHours), 0.4);
 }
+
+/* ------------------------------------------------------------------ focus view */
+
+/**
+ * Where the zoomed-in planet sits on screen. Portrait screens put its centre on
+ * the bottom edge (half the disc shows, text above); landscape screens put it on
+ * the left edge (text to the right). `cx` and `cy` are fractions of the screen.
+ */
+export function focusLayout(aspect: number): { cx: number; cy: number; portrait: boolean } {
+  return aspect < 1 ? { cx: 0.5, cy: 1, portrait: true } : { cx: 0, cy: 0.5, portrait: false };
+}
+
+/** Planet radius on screen: 78% of the width in portrait, 60% of the height in landscape. */
+function focusScreenRadiusOfHalfHeight(aspect: number): number {
+  return aspect < 1 ? 0.78 * 2 * aspect : 1.2;
+}
+
+/** Camera distance that gives the zoomed-in planet its on-screen size. */
+export function focusDistance(aspect: number, radius: number, fovDeg = FOV_DEG): number {
+  const tanHalf = Math.tan((fovDeg * Math.PI) / 360);
+  return radius / (focusScreenRadiusOfHalfHeight(aspect) * tanHalf);
+}
+
+/**
+ * Unit vector from the planet to the camera. The camera sits `azimuthDeg` away from
+ * the Sun's direction (so the planet shows a lit gibbous face with a terminator) and
+ * slightly above the ecliptic. The side is chosen so the Sun appears on the right of
+ * the screen, which is the side the text is not on in landscape.
+ */
+export function focusDirection(px: number, pz: number, elevationDeg = 12, azimuthDeg = 55): [number, number, number] {
+  const len = Math.hypot(px, pz) || 1;
+  const sx = -px / len;
+  const sz = -pz / len;
+  const e = (elevationDeg * Math.PI) / 180;
+  for (const sign of [1, -1]) {
+    const a = (sign * azimuthDeg * Math.PI) / 180;
+    const cx = sx * Math.cos(a) + sz * Math.sin(a);
+    const cz = -sx * Math.sin(a) + sz * Math.cos(a);
+    // Camera right vector is (cz, 0, -cx) for a camera looking at the planet with +Y up.
+    if (sx * cz - sz * cx > 0) return [cx * Math.cos(e), Math.sin(e), cz * Math.cos(e)];
+  }
+  return [0, Math.sin(e), Math.cos(e)];
+}
+
+/** Calm spin for the zoomed-in planet: slow enough to read the text, fast enough to see it turn. */
+export function focusSpin(overviewSpin: number): number {
+  return Math.min(0.25, Math.max(0.05, overviewSpin * 0.3));
+}
+
+/** Rings stick out past the disc, so ring planets are framed a little smaller. */
+export const RING_FRAME_FACTOR = 1.3;

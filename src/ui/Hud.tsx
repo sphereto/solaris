@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { dateForOffset, formatClock, formatDate, formatDayOffset } from '../ephemeris/planets';
+import { useFocusIndex, focusStore } from '../state/focus';
 import { timeStore, useTargetOffset } from '../state/time';
 import { Credits } from './Credits';
-import { DiscoverSheet } from './DiscoverSheet';
+import { DiscoverSheet, type DiscoverStart } from './DiscoverSheet';
+import { PlanetFocus } from './PlanetFocus';
 import { TimeDial } from './TimeDial';
 
 function useNow(intervalMs: number): Date {
@@ -20,11 +22,13 @@ function useDateControls() {
     const onWheel = (e: WheelEvent) => {
       if ((e.target as HTMLElement | null)?.closest('.credits-panel, .discover-sheet, .viewer')) return;
       e.preventDefault();
+      if (focusStore.get() !== null) return; // zoomed in: the date stays put
       const clamped = Math.max(-240, Math.min(240, e.deltaY));
       timeStore.nudge(clamped * 0.04); // scroll down moves forward in time
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) return;
+      if (focusStore.get() !== null) return; // zoomed in: arrows change planet instead
       const step = e.altKey ? 365 : e.shiftKey ? 30 : 1;
       if (e.key === 'ArrowRight' || e.key === 'ArrowUp') timeStore.nudge(step);
       else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') timeStore.nudge(-step);
@@ -46,6 +50,8 @@ export function Hud() {
   const now = useNow(15_000);
   const [showCredits, setShowCredits] = useState(false);
   const [showDiscover, setShowDiscover] = useState(false);
+  const [discoverStart, setDiscoverStart] = useState<DiscoverStart | null>(null);
+  const focus = useFocusIndex();
   useDateControls();
 
   // Whole days, so the date and the "+N days" counter always agree.
@@ -53,7 +59,7 @@ export function Hud() {
   const shown = dateForOffset(now, days);
 
   return (
-    <div className="hud">
+    <div className={`hud${focus !== null ? ' is-focus' : ''}`}>
       <div className="hud-top">
         <span className="readout" aria-label="Date shown">
           {formatDate(shown)}
@@ -78,10 +84,24 @@ export function Hud() {
         <TimeDial />
       </div>
 
-      {showDiscover && <DiscoverSheet shown={shown} onClose={() => setShowDiscover(false)} />}
+      <PlanetFocus
+        index={focus}
+        shown={shown}
+        daysFromToday={days}
+        suspended={showDiscover || showCredits}
+        onPictures={(name) => {
+          setDiscoverStart({ view: 'library', query: name });
+          setShowDiscover(true);
+        }}
+      />
+
+      {showDiscover && <DiscoverSheet shown={shown} start={discoverStart} onClose={() => setShowDiscover(false)} />}
       <button
-        className="discover-btn"
-        onClick={() => setShowDiscover((o) => !o)}
+        className={`discover-btn${showDiscover ? ' is-open' : ''}`}
+        onClick={() => {
+          setDiscoverStart(null);
+          setShowDiscover((o) => !o);
+        }}
         aria-expanded={showDiscover}
       >
         {showDiscover ? (

@@ -1,18 +1,25 @@
 import * as THREE from 'three';
 import { PLANETS, dateForOffset, planetStates } from '../ephemeris/planets';
+import { focusStore } from '../state/focus';
 import { timeStore } from '../state/time';
 import {
   FOV_DEG,
   PITCH_PRESETS,
   PLANET_COUNT,
+  RING_FRAME_FACTOR,
   cameraDistance,
   cameraPosition,
+  focusDirection,
+  focusDistance,
+  focusLayout,
+  focusSpin,
   nextPitchIndex,
   orbitPosition,
   ringRadius,
   visualSpin,
 } from './layout';
 import { PLANET_VISUALS, SUN_VISUAL, type PlanetVisual } from './planetData';
+import { pickTarget } from './picking';
 import { TapGesture } from './tapGesture';
 
 interface PlanetNode {
@@ -62,6 +69,20 @@ export class SolarScene {
 
   private sun!: THREE.Mesh;
   private sunSpin = 0;
+  private ringMaterial!: THREE.LineBasicMaterial;
+
+  /* Zoomed-in view: `focusMix` eases 0..1, `focusS` is its smoothed version used for blending. */
+  private focusIdx = 0;
+  private focusMix = 0;
+  private focusS = 0;
+  private readonly focusPos = new THREE.Vector3();
+  private readonly focusLook = new THREE.Vector3();
+  private readonly tmpPos = new THREE.Vector3();
+  private readonly tmpLook = new THREE.Vector3();
+  private readonly tmpUp = new THREE.Vector3();
+  private readonly upY = new THREE.Vector3(0, 1, 0);
+  private readonly reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  private down = { x: 0, y: 0, t: 0 };
 
   private pitchIndex = 0;
   private pitch: number = PITCH_PRESETS[0];
@@ -94,7 +115,7 @@ export class SolarScene {
     this.renderer.setPixelRatio(this.pixelRatio);
     this.scene.background = new THREE.Color(0x03040a);
 
-    this.camera = new THREE.PerspectiveCamera(FOV_DEG, 1, 1, 2500);
+    this.camera = new THREE.PerspectiveCamera(FOV_DEG, 1, 0.1, 2500);
     this.camera.up.set(0, 0, -1);
 
     this.buildLights();
@@ -168,6 +189,7 @@ export class SolarScene {
     const material = this.track(
       new THREE.LineBasicMaterial({ color: 0x7584b8, transparent: true, opacity: 0.38 }),
     );
+    this.ringMaterial = material;
     for (let i = 0; i < PLANET_COUNT; i++) {
       const r = ringRadius(i);
       const pts: THREE.Vector3[] = [];
@@ -363,12 +385,51 @@ export class SolarScene {
   /* ---------------------------------------------------------------- input */
 
   private readonly onPointerDown = (e: PointerEvent) => {
-    this.tap.pointerDown(e.clientX, e.clientY, e.timeStamp);
+    this.down = { x: e.clientX, y: e.clientY, t: e.timeStamp };
+    if (focusStore.get() === null) this.tap.pointerDown(e.clientX, e.clientY, e.timeStamp);
   };
   private readonly onPointerUp = (e: PointerEvent) => {
+    const dx = e.clientX - this.down.x;
+    const dy = e.clientY - this.down.y;
+    if (focusStore.get() !== null) {
+      // Zoomed in: a sideways swipe moves to the next or previous planet.
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) focusStore.step(dx < 0 ? 1 : -1);
+      return;
+    }
+    const quick = Math.hypot(dx, dy) <= 10 && e.timeStamp - this.down.t <= 500;
+    if (quick) {
+      const hit = this.pickPlanet(e.clientX, e.clientY);
+      if (hit !== null) {
+        this.tap.pointerCancel();
+        focusStore.set(hit);
+        return;
+      }
+    }
     this.tap.pointerUp(e.clientX, e.clientY, e.timeStamp);
   };
   private readonly onPointerCancel = () => this.tap.pointerCancel();
+
+  /** Which planet a tap landed on, using each planet's on-screen position. Null while zooming. */
+  private pickPlanet(clientX: number, clientY: number): number | null {
+    if (this.focusMix > 0.05) return null;
+    const rect = this.canvas.getBoundingClientRect();
+    const tanHalf = Math.tan((FOV_DEG * Math.PI) / 360);
+    this.camera.updateMatrixWorld();
+    const v = new THREE.Vector3();
+    const targets = this.planets.map((node, id) => {
+      v.copy(node.group.position);
+      const dist = this.camera.position.distanceTo(v);
+      v.project(this.camera);
+      const radius = PLANET_VISUALS[PLANETS[id].id].radius;
+      return {
+        id,
+        x: (v.x * 0.5 + 0.5) * rect.width,
+        y: (-v.y * 0.5 + 0.5) * rect.height,
+        r: (radius / (dist * tanHalf)) * (rect.height / 2),
+      };
+    });
+    return pickTarget(targets, clientX - rect.left, clientY - rect.top);
+  }
 
   private cyclePitch() {
     this.pitchIndex = nextPitchIndex(this.pitchIndex);
@@ -426,10 +487,72 @@ export class SolarScene {
   }
 
   private placeCamera() {
+    this.updateCamera();
+  }
+
+  /**
+   * Blends the overhead camera with the zoomed-in one by `focusS`. The zoomed camera
+   * looks at the planet from beside the Sun's direction, and a lens shift (not a pan)
+   * moves the planet to the bottom or left edge so the disc is not stretched.
+   */
+  private updateCamera() {
+    const s = this.focusS;
     const d = cameraDistance(this.camera.aspect);
     const [x, y, z] = cameraPosition(d, this.pitch);
-    this.camera.position.set(x, y, z);
-    this.camera.lookAt(0, 0, 0);
+    this.tmpPos.set(x, y, z).lerp(this.focusPos, s);
+    this.tmpLook.set(0, 0, 0).lerp(this.focusLook, s);
+    this.tmpUp.set(0, 0, -1).lerp(this.upY, s).normalize();
+    this.camera.position.copy(this.tmpPos);
+    this.camera.up.copy(this.tmpUp);
+    this.camera.lookAt(this.tmpLook);
+
+    if (s > 0.0005) {
+      const { cx, cy } = focusLayout(this.camera.aspect);
+      const w = Math.max(1, this.canvas.parentElement?.clientWidth ?? 1);
+      const h = Math.max(1, this.canvas.parentElement?.clientHeight ?? 1);
+      this.camera.setViewOffset(w, h, s * w * (0.5 - cx), s * h * (0.5 - cy), w, h);
+    } else {
+      this.camera.clearViewOffset();
+    }
+    this.ringMaterial.opacity = 0.38 - 0.33 * s;
+  }
+
+  /** Eases the zoom in or out and keeps the camera glued to the focused planet as it orbits. */
+  private stepFocus(dt: number) {
+    const want = focusStore.get();
+    if (want !== null) this.focusIdx = want;
+    const target = want !== null ? 1 : 0;
+
+    if (this.reduceMotion) this.focusMix = target;
+    else if (this.focusMix !== target) {
+      this.focusMix += (target - this.focusMix) * (1 - Math.exp(-dt * 3.4));
+      if (Math.abs(target - this.focusMix) < 0.002) this.focusMix = target;
+    }
+    const m = this.focusMix;
+    const nextS = m * m * (3 - 2 * m); // smoothstep: slow, fast, slow
+    const moving = nextS > 0 || this.focusS > 0;
+
+    if (moving) {
+      const node = this.planets[this.focusIdx];
+      const v = PLANET_VISUALS[PLANETS[this.focusIdx].id];
+      const p = node.group.position;
+      const dir = focusDirection(p.x, p.z);
+      const dist = focusDistance(this.camera.aspect, v.radius * (v.ring ? RING_FRAME_FACTOR : 1));
+      this.tmpPos.set(p.x + dir[0] * dist, p.y + dir[1] * dist, p.z + dir[2] * dist);
+      if (want !== null && m < 0.02) {
+        // Starting out: begin exactly on the planet, no sideways drift.
+        this.focusPos.copy(this.tmpPos);
+        this.focusLook.copy(p);
+      } else {
+        // Already zoomed (or flying to another planet): slide toward the planet's current spot.
+        const k = this.reduceMotion ? 1 : 1 - Math.exp(-dt * 5);
+        this.focusPos.lerp(this.tmpPos, k);
+        this.focusLook.lerp(p, k);
+      }
+    }
+
+    this.focusS = nextS;
+    if (moving) this.updateCamera();
   }
 
   /* ---------------------------------------------------------------- frame */
@@ -469,10 +592,14 @@ export class SolarScene {
       });
     }
 
-    for (const p of this.planets) {
-      p.body.rotation.y += p.spin * dt;
-      if (p.clouds) p.clouds.mesh.rotation.y += (p.spin + p.clouds.drift) * dt;
-    }
+    this.stepFocus(dt);
+
+    this.planets.forEach((p, i) => {
+      // The planet you are looking at turns at a calm, readable speed.
+      const spin = i === this.focusIdx ? p.spin + (focusSpin(p.spin) - p.spin) * this.focusS : p.spin;
+      p.body.rotation.y += spin * dt;
+      if (p.clouds) p.clouds.mesh.rotation.y += (spin + p.clouds.drift) * dt;
+    });
     this.sun.rotation.y += this.sunSpin * dt;
 
     // Ease the camera pitch toward its preset.

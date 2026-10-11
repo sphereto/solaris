@@ -65,7 +65,9 @@ It is made for people who like orbital mechanics: students meeting Kepler for th
 
 | Do this | And this happens |
 |---|---|
-| **Tap** the view | Tilts the camera: overhead → angled → low → back to overhead |
+| **Tap a planet** | The camera zooms in. The planet fills the bottom of the screen (or the left on wide screens), spins, and its name, distance and day and year lengths appear beside it |
+| **Swipe** (or **← / →**) while zoomed in | Next or previous planet. **Esc** or the back button returns to the solar system |
+| **Tap** empty space | Tilts the camera: overhead → angled → low → back to overhead |
 | **Double-tap** the view | Straight back to overhead |
 | **Drag the dial** | Drag **left** to go forward in time, **right** to go back. A faster drag covers more days per pixel |
 | **Mouse wheel** | Scroll down moves forward in time |
@@ -347,7 +349,7 @@ The key is built into the page, so anyone can read it from the deployed site. NA
 - [x] Installable and offline-ready
 - [x] Discover: NASA pictures, Earth, the Sun, asteroids, image search and exoplanets
 - [ ] Discover: Mars rover photos (needs a new data source)
-- [ ] Tap a planet for its name, distance and orbital speed
+- [x] Tap a planet to zoom in, with its name, distance and day and year lengths
 - [ ] Play / pause time, and jump to a typed date
 - [ ] Event finder: next opposition, conjunction, equinox, solstice
 - [ ] Planet trails

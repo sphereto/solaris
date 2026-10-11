@@ -16,9 +16,15 @@ import { useDebounced } from './useDebounced';
 
 type View = 'home' | 'mars' | 'earth' | 'sun' | 'neo' | 'library' | 'exo';
 
+/** Open straight into the image library with a search, e.g. from a planet's screen. */
+export interface DiscoverStart {
+  view: 'library';
+  query: string;
+}
+
 /** Discover sheet. It follows the date the dial is pointing at. */
-export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => void }) {
-  const [view, setView] = useState<View>('home');
+export function DiscoverSheet({ shown, onClose, start }: { shown: Date; onClose: () => void; start?: DiscoverStart | null }) {
+  const [view, setView] = useState<View>(start?.view ?? 'home');
   const offset = useTargetOffset();
   const ref = useRef<HTMLElement>(null);
 
@@ -59,7 +65,7 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
       ) : view === 'exo' ? (
         <ExoplanetView shown={shown} onBack={() => setView('home')} />
       ) : view === 'library' ? (
-        <LibraryView shown={shown} onBack={() => setView('home')} onJump={jump} />
+        <LibraryView shown={shown} onBack={() => setView('home')} onJump={jump} initialQuery={start?.query} />
       ) : view === 'neo' ? (
         <NeoView shown={shown} onBack={() => setView('home')} onJump={jump} />
       ) : view === 'sun' ? (

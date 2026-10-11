@@ -23,7 +23,7 @@ export function SolarCanvas() {
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label="Overhead view of the Sun and eight planets on their orbits. Tap to tilt the view, double tap to return overhead."
+        aria-label="Overhead view of the Sun and eight planets on their orbits. Tap a planet to look closer, tap empty space to tilt the view, double tap to return overhead."
       />
       {failed && (
         <p className="fallback">

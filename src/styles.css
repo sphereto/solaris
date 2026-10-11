@@ -1338,3 +1338,237 @@ body {
     animation: none;
   }
 }
+
+/* ---- Planet zoom ---- */
+
+.hud-top,
+.hud-bottom {
+  transition: opacity 0.35s ease 0.25s;
+}
+
+.hud.is-focus .hud-top,
+.hud.is-focus .hud-bottom {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+}
+
+.hud.is-focus .discover-btn:not(.is-open) {
+  display: none;
+}
+
+.focus {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  transition: opacity 0.5s ease 0.4s;
+  animation: focus-in 0.6s ease 0.45s both;
+}
+
+.focus.is-leaving {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}
+
+@keyframes focus-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.focus-top {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.focus-pill {
+  pointer-events: auto;
+  min-height: 48px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 15px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  background: rgba(12, 16, 28, 0.62);
+  backdrop-filter: blur(16px);
+  border: 0;
+  border-radius: 24px;
+  cursor: pointer;
+}
+
+.focus-date {
+  pointer-events: none;
+}
+
+.focus-pill:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.focus-pill:focus-visible,
+.focus-cta:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.focus-text {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: max(104px, 12vh);
+  animation: focus-in 0.5s ease both;
+}
+
+.focus-kicker {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #ffcf8a;
+}
+
+.focus-text h1 {
+  margin: 8px 0 14px;
+  font: 400 clamp(56px, 22vw, 112px) / 0.95 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+}
+
+.focus-blurb {
+  max-width: 320px;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.5;
+  color: #a9b0c6;
+}
+
+.focus-facts {
+  margin-top: 24px;
+}
+
+.focus-fact {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-height: 46px;
+}
+
+.focus-fact strong {
+  font: 400 clamp(26px, 8.5vw, 34px) / 1.1 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+}
+
+.focus-fact span {
+  font-size: 15px;
+  color: #a9b0c6;
+}
+
+.focus-cta {
+  pointer-events: auto;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 48px + 20px);
+  min-height: 48px;
+  padding: 0 24px;
+  font: 600 16px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: #1a1100;
+  background: var(--amber);
+  border: 0;
+  border-radius: 24px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.focus-nav {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Short phones: tighter text so it clears the planet. */
+@media (max-height: 720px) and (max-aspect-ratio: 1/1) {
+  .focus-text {
+    top: 84px;
+  }
+  .focus-text h1 {
+    font-size: clamp(48px, 17vw, 84px);
+    margin-bottom: 8px;
+  }
+  .focus-blurb {
+    font-size: 16px;
+  }
+  .focus-fact {
+    min-height: 36px;
+  }
+  .focus-fact strong {
+    font-size: 26px;
+  }
+}
+
+/* Wide screens: the planet is on the left, so the text moves right. */
+@media (min-aspect-ratio: 1/1) {
+  .focus-text {
+    left: 50%;
+    right: auto;
+    width: min(46vw, 560px);
+    top: max(88px, 18vh);
+  }
+  .focus-text h1 {
+    font-size: clamp(72px, 17vh, 168px);
+  }
+  .focus-blurb {
+    max-width: 460px;
+    font-size: 20px;
+  }
+  .focus-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 40px;
+    margin-top: 32px;
+  }
+  .focus-fact {
+    display: block;
+    min-height: 0;
+  }
+  .focus-fact strong {
+    display: block;
+    font-size: clamp(28px, 5.4vh, 40px);
+  }
+  .focus-cta {
+    left: 50%;
+    transform: none;
+    bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  .focus-nav {
+    left: auto;
+    gap: 8px;
+  }
+}
+
+@media (min-aspect-ratio: 1/1) and (max-height: 520px) {
+  .focus-blurb {
+    display: none;
+  }
+  .focus-text {
+    top: 72px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus,
+  .focus-text {
+    animation: none;
+    transition: none;
+  }
+}
