@@ -5,13 +5,14 @@ import { apodDateFor, localIso } from '../discover/nasa';
 import { useApod } from '../discover/useApod';
 import { timeStore, useTargetOffset } from '../state/time';
 import { EarthView } from './EarthView';
+import { LibraryView } from './LibraryView';
 import { MarsView } from './MarsView';
 import { NeoView } from './NeoView';
 import { SunView } from './SunView';
 import { PhotoViewer } from './PhotoViewer';
 import { useDebounced } from './useDebounced';
 
-type View = 'home' | 'mars' | 'earth' | 'sun' | 'neo';
+type View = 'home' | 'mars' | 'earth' | 'sun' | 'neo' | 'library';
 
 /** Discover sheet. It follows the date the dial is pointing at. */
 export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => void }) {
@@ -53,6 +54,8 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
     <section className="discover-sheet" aria-label="Discover" ref={ref}>
       {view === 'mars' ? (
         <MarsView shown={shown} onBack={() => setView('home')} onJump={jump} />
+      ) : view === 'library' ? (
+        <LibraryView shown={shown} onBack={() => setView('home')} onJump={jump} />
       ) : view === 'neo' ? (
         <NeoView shown={shown} onBack={() => setView('home')} onJump={jump} />
       ) : view === 'sun' ? (
@@ -151,6 +154,11 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
               <span className="tile-art" aria-hidden="true" />
               <strong>Asteroids</strong>
               <small>Close approaches</small>
+            </button>
+            <button className="tile tile-lib" onClick={() => setView('library')}>
+              <span className="tile-art" aria-hidden="true" />
+              <strong>Image library</strong>
+              <small>Search NASA's archive</small>
             </button>
           </div>
         </>

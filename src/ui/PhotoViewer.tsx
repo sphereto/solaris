@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 
 export interface ViewerItem {
   src: string;
+  fallback?: string; // tried once if src fails to load
   title: string;
   kicker: string;
   caption?: string;
@@ -15,16 +16,17 @@ export interface ViewerItem {
 function ViewerImage({ item }: { item: ViewerItem }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [src, setSrc] = useState(item.src);
   if (failed) return <p className="viewer-fail">This image could not be loaded.</p>;
   return (
     <>
       <img
         className={loaded ? 'is-loaded' : ''}
-        src={item.src}
+        src={src}
         alt={item.title}
         draggable={false}
         onLoad={() => setLoaded(true)}
-        onError={() => setFailed(true)}
+        onError={() => (item.fallback && src !== item.fallback ? setSrc(item.fallback) : setFailed(true))}
       />
       {!loaded && <div className="viewer-spin" aria-hidden="true" />}
     </>
