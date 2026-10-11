@@ -6,11 +6,12 @@ import { useApod } from '../discover/useApod';
 import { timeStore, useTargetOffset } from '../state/time';
 import { EarthView } from './EarthView';
 import { MarsView } from './MarsView';
+import { NeoView } from './NeoView';
 import { SunView } from './SunView';
 import { PhotoViewer } from './PhotoViewer';
 import { useDebounced } from './useDebounced';
 
-type View = 'home' | 'mars' | 'earth' | 'sun';
+type View = 'home' | 'mars' | 'earth' | 'sun' | 'neo';
 
 /** Discover sheet. It follows the date the dial is pointing at. */
 export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => void }) {
@@ -52,6 +53,8 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
     <section className="discover-sheet" aria-label="Discover" ref={ref}>
       {view === 'mars' ? (
         <MarsView shown={shown} onBack={() => setView('home')} onJump={jump} />
+      ) : view === 'neo' ? (
+        <NeoView shown={shown} onBack={() => setView('home')} onJump={jump} />
       ) : view === 'sun' ? (
         <SunView onBack={() => setView('home')} onJump={jump} offsetDays={Math.round(offset)} />
       ) : view === 'earth' ? (
@@ -143,6 +146,11 @@ export function DiscoverSheet({ shown, onClose }: { shown: Date; onClose: () => 
               <span className="tile-art" aria-hidden="true" />
               <strong>The Sun now</strong>
               <small>Live · space weather</small>
+            </button>
+            <button className="tile tile-neo" onClick={() => setView('neo')}>
+              <span className="tile-art" aria-hidden="true" />
+              <strong>Asteroids</strong>
+              <small>Close approaches</small>
             </button>
           </div>
         </>

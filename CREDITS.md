@@ -47,6 +47,7 @@ The in-app credits panel (`src/credits.ts`) must stay in sync with this file.
 
 ## Space pictures and data
 
-Astronomy Picture of the Day and Mars Rover Photos and EPIC Earth images via the NASA Open APIs (https://api.nasa.gov/).
+Astronomy Picture of the Day, EPIC Earth images and NeoWs asteroid data via the NASA Open APIs (https://api.nasa.gov/).
+Sun pictures: NASA Solar Dynamics Observatory (https://sdo.gsfc.nasa.gov/). Space weather numbers: NOAA Space Weather Prediction Center (https://www.swpc.noaa.gov/).
 Images may carry their own credit, which the app shows next to each picture.
 See the NASA media usage guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/

@@ -34,7 +34,7 @@ export const CREDITS: CreditEntry[] = [
   },
   {
     title: 'Space pictures and data',
-    text: 'NASA Open APIs (Astronomy Picture of the Day, Mars Rover Photos, EPIC). Images may carry their own credit.',
+    text: 'NASA Open APIs (Astronomy Picture of the Day, EPIC Earth images, NeoWs asteroids), NASA Solar Dynamics Observatory, and NOAA Space Weather Prediction Center. Images may carry their own credit.',
     url: 'https://api.nasa.gov/',
     license: 'NASA media usage guidelines',
     licenseUrl: 'https://www.nasa.gov/nasa-brand-center/images-and-media/',
