@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { localIso } from '../discover/nasa';
-import { type NeoObject, type SortKey, closestOf, formatKm, formatLunar, formatSize, ldPosition, neoWindow, sizeComparison, sortNeo } from '../discover/neo';
+import { type NeoObject, type SortKey, closestOf, formatLunar, ldPosition, neoWindow, sizeComparison, sortNeo } from '../discover/neo';
+import { distanceKm, sizeMetres } from '../discover/units';
+import { useSettings } from '../state/useSettings';
 import { useNeo } from '../discover/useNeo';
 import { ErrorNote } from './ErrorNote';
 import { useDebounced } from './useDebounced';
@@ -30,13 +32,14 @@ function Ruler({ lunar }: { lunar: number }) {
 }
 
 function Facts({ o }: { o: NeoObject }) {
+  const { units } = useSettings();
   return (
     <p className="neo-facts">
       <span>
-        {formatLunar(o.lunar)}× the Moon's distance ({formatKm(o.km)})
+        {formatLunar(o.lunar)}× the Moon's distance ({distanceKm(o.km, units)})
       </span>
       <span>
-        {formatSize(o.diameterM)} wide, about like {sizeComparison(o.diameterM)}
+        {sizeMetres(o.diameterM, units)} wide, about like {sizeComparison(o.diameterM)}
       </span>
       <span>{o.kmPerSec.toFixed(1)} km/s</span>
     </p>

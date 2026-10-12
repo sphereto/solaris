@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLibrary } from '../discover/useLibrary';
+import { useSettings } from '../state/useSettings';
 import { ErrorNote } from './ErrorNote';
 import { PhotoViewer, type ViewerItem } from './PhotoViewer';
 import { useDebounced } from './useDebounced';
@@ -9,6 +10,7 @@ const PAGE = 12;
 
 /** Search NASA's picture archive. Optionally limited to the year on the dial. */
 export function LibraryView({ shown, onBack, onJump, initialQuery }: { shown: Date; onBack: () => void; onJump: (isoDate: string) => void; initialQuery?: string }) {
+  const { saveData } = useSettings();
   const dialYear = shown.getFullYear();
   const [query, setQuery] = useState(initialQuery ?? 'Galaxies');
   const [text, setText] = useState('');
@@ -28,7 +30,7 @@ export function LibraryView({ shown, onBack, onJump, initialQuery }: { shown: Da
   const viewerItems = useMemo<ViewerItem[]>(
     () =>
       (items ?? []).map((i) => ({
-        src: i.medium,
+        src: saveData ? i.thumb : i.medium,
         fallback: i.thumb,
         title: i.title,
         kicker: `NASA Image Library · ${i.date}`,
@@ -37,7 +39,7 @@ export function LibraryView({ shown, onBack, onJump, initialQuery }: { shown: Da
         date: i.date,
         link: i.page,
       })),
-    [items],
+    [items, saveData],
   );
 
   return (

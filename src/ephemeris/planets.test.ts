@@ -89,6 +89,10 @@ describe('date helpers', () => {
   it('formats the clock as HH:MM', () => {
     expect(formatClock(new Date(2026, 9, 8, 7, 5))).toBe('07:05');
     expect(formatClock(new Date(2026, 9, 8, 18, 39))).toBe('18:39');
+    expect(formatClock(new Date(2026, 9, 8, 18, 39), '12')).toBe('6:39 PM');
+    expect(formatClock(new Date(2026, 9, 8, 0, 5), '12')).toBe('12:05 AM');
+    expect(formatDate(new Date(2026, 9, 8), 'dmy')).toBe('08/10/26');
+    expect(formatDate(new Date(2026, 9, 8), 'iso')).toBe('2026-10-08');
   });
 
   it('formats the day offset', () => {

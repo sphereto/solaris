@@ -1,3 +1,5 @@
+import { settingsCore } from '../state/settingsCore';
+
 /**
  * NASA APOD (Astronomy Picture of the Day) client. Pure helpers plus a small
  * fetch/cache layer. No React here so the date and parsing rules are unit
@@ -107,7 +109,7 @@ export function parseApod(raw: unknown): Apod | null {
 }
 
 export function nasaKey(): string {
-  return import.meta.env.VITE_NASA_API_KEY || 'DEMO_KEY';
+  return settingsCore.get().nasaKey || import.meta.env.VITE_NASA_API_KEY || 'DEMO_KEY';
 }
 
 export async function getJson(url: string, signal: AbortSignal): Promise<unknown> {
@@ -158,5 +160,36 @@ export function writeCachedApod(apod: Apod): void {
     );
   } catch {
     /* storage full or blocked */
+  }
+}
+
+export interface KeyTest {
+  state: 'ok' | 'invalid' | 'limited' | 'error';
+  message: string;
+}
+
+/** Turns NASA's reply to a test request into a plain message. */
+export function classifyKeyResponse(status: number, body: string, remaining: string | null): KeyTest {
+  if (status >= 200 && status < 300) {
+    const n = remaining !== null && remaining !== '' ? Number(remaining) : NaN;
+    return { state: 'ok', message: Number.isFinite(n) ? `Key works. ${n.toLocaleString('en-US')} requests left this hour.` : 'Key works.' };
+  }
+  if (/API_KEY_(INVALID|MISSING)/.test(body)) return { state: 'invalid', message: 'NASA says this key is not valid. Check for a missing or extra character.' };
+  if (status === 429 || /OVER_RATE_LIMIT/.test(body)) return { state: 'limited', message: 'This key has hit its hourly limit. It is valid; try again later.' };
+  return { state: 'error', message: `NASA answered with an error (HTTP ${status}).` };
+}
+
+/** Asks NASA for one old Picture of the Day with the given key and reports what happened. */
+export async function testNasaKey(key: string): Promise<KeyTest> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(buildApodUrl('2024-01-01', key), { signal: ctl.signal });
+    const body = res.ok ? '' : await res.text().catch(() => '');
+    return classifyKeyResponse(res.status, body, res.headers.get('x-ratelimit-remaining'));
+  } catch {
+    return { state: 'error', message: 'Could not reach NASA. Check your connection.' };
+  } finally {
+    clearTimeout(timer);
   }
 }

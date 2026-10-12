@@ -54,3 +54,15 @@ describe('apod parsing', () => {
     expect(u.searchParams.get('thumbs')).toBe('true');
   });
 });
+
+import { classifyKeyResponse } from './nasa';
+
+describe('key test', () => {
+  it('classifies NASA replies', () => {
+    expect(classifyKeyResponse(200, '', '9987')).toEqual({ state: 'ok', message: 'Key works. 9,987 requests left this hour.' });
+    expect(classifyKeyResponse(200, '', null).message).toBe('Key works.');
+    expect(classifyKeyResponse(403, '{"error":{"code":"API_KEY_INVALID"}}', null).state).toBe('invalid');
+    expect(classifyKeyResponse(429, '', null).state).toBe('limited');
+    expect(classifyKeyResponse(500, 'oops', null)).toEqual({ state: 'error', message: 'NASA answered with an error (HTTP 500).' });
+  });
+});

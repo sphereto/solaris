@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { PLANETS, dateForOffset, planetStates } from '../ephemeris/planets';
 import { focusStore } from '../state/focus';
+import { settingsCore } from '../state/settingsCore';
+import { START_VIEW_INDEX, effectiveEffects, labelOpacity, pixelRatioFor, prefersReducedMotion, spinMultiplier } from '../state/settingsMath';
 import { timeStore } from '../state/time';
 import {
   FOV_DEG,
@@ -19,6 +21,20 @@ import {
   visualSpin,
 } from './layout';
 import { PLANET_VISUALS, SUN_VISUAL, type PlanetVisual } from './planetData';
+import {
+  ATMOSPHERES,
+  BODY_SHADOW_FRAGMENT,
+  BODY_SHADOW_VERTEX,
+  RING_FRAGMENT_DECL,
+  RING_FRAGMENT_SHADE,
+  RING_VERTEX_DECL,
+  RING_VERTEX_SET,
+  STAR_FRAGMENT,
+  STAR_VERTEX,
+  makeGlowTexture,
+  makeMilkyWayTexture,
+  ringAxes,
+} from './effects';
 import { pickTarget } from './picking';
 import { TapGesture } from './tapGesture';
 
@@ -30,6 +46,7 @@ interface PlanetNode {
   body: THREE.Mesh;
   spin: number;
   clouds?: { mesh: THREE.Mesh; drift: number };
+  glow?: THREE.Sprite;
 }
 
 const EPHEMERIS_REFRESH_MS = 30_000;
@@ -70,6 +87,7 @@ export class SolarScene {
   private sun!: THREE.Mesh;
   private sunSpin = 0;
   private ringMaterial!: THREE.LineBasicMaterial;
+  private glowTexture?: THREE.CanvasTexture;
 
   /* Zoomed-in view: `focusMix` eases 0..1, `focusS` is its smoothed version used for blending. */
   private focusIdx = 0;
@@ -81,7 +99,24 @@ export class SolarScene {
   private readonly tmpLook = new THREE.Vector3();
   private readonly tmpUp = new THREE.Vector3();
   private readonly upY = new THREE.Vector3(0, 1, 0);
-  private readonly reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  private reduceMotion = false;
+  private readonly motionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+
+  /* Visual effects and settings */
+  private settings = settingsCore.get();
+  private qualityMode: string = 'auto';
+  private lowPower = false;
+  private lastStartView: string | null = null;
+  private clock = 0;
+  private starMaterial!: THREE.ShaderMaterial;
+  private milkyWay!: THREE.Mesh;
+  private sunHalo!: THREE.Sprite;
+  private readonly bodyShadows: Array<{ mesh: THREE.Mesh; uniforms: Record<string, THREE.IUniform> }> = [];
+  private readonly ringShadowUniforms: Array<{ uShadowOn: THREE.IUniform }> = [];
+  private labelLayer!: HTMLDivElement;
+  private readonly labelEls: HTMLSpanElement[] = [];
+  private labelsVisible = false;
+  private unsubSettings: (() => void) | null = null;
   private down = { x: 0, y: 0, t: 0 };
 
   private pitchIndex = 0;
@@ -120,9 +155,11 @@ export class SolarScene {
 
     this.buildLights();
     this.buildStars();
+    this.buildMilkyWay();
     this.buildRings();
     this.buildSun();
     this.buildPlanets();
+    this.buildLabels();
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas.parentElement ?? canvas);
@@ -138,6 +175,9 @@ export class SolarScene {
     canvas.addEventListener('webglcontextlost', this.onContextLost);
     canvas.addEventListener('webglcontextrestored', this.onContextRestored);
     document.addEventListener('visibilitychange', this.onVisibility);
+    this.motionQuery?.addEventListener('change', this.onSettingsChange);
+    this.unsubSettings = settingsCore.subscribe(this.onSettingsChange);
+    this.applySettings();
 
     this.start();
   }
@@ -161,6 +201,9 @@ export class SolarScene {
     const rand = mulberry32(20261008);
     const count = 1800;
     const positions = new Float32Array(count * 3);
+    const phases = new Float32Array(count);
+    const sizes = new Float32Array(count);
+    const colors = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const u = rand() * 2 - 1;
       const t = rand() * Math.PI * 2;
@@ -169,20 +212,59 @@ export class SolarScene {
       positions[i * 3] = r * s * Math.cos(t);
       positions[i * 3 + 1] = r * u;
       positions[i * 3 + 2] = r * s * Math.sin(t);
+      phases[i] = rand() * Math.PI * 2;
+      sizes[i] = 1.2 + Math.pow(rand(), 3) * 2.4;
+      const warm = rand(); // 0 blue-white, 1 warm
+      colors[i * 3] = 0.75 + 0.25 * warm;
+      colors[i * 3 + 1] = 0.8 + 0.1 * warm;
+      colors[i * 3 + 2] = 1 - 0.25 * warm;
     }
     const geometry = this.track(new THREE.BufferGeometry());
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const material = this.track(
-      new THREE.PointsMaterial({
-        color: 0xbfc8ff,
-        size: 1.5,
-        sizeAttenuation: false,
+    geometry.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+    geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+    geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+    this.starMaterial = this.track(
+      new THREE.ShaderMaterial({
+        uniforms: { uTime: { value: 0 }, uPx: { value: this.pixelRatio }, uTwinkle: { value: 1 } },
+        vertexShader: STAR_VERTEX,
+        fragmentShader: STAR_FRAGMENT,
         transparent: true,
-        opacity: 0.8,
         depthWrite: false,
       }),
     );
-    this.scene.add(new THREE.Points(geometry, material));
+    const points = new THREE.Points(geometry, this.starMaterial);
+    points.frustumCulled = false;
+    this.scene.add(points);
+  }
+
+  /** A faint Milky Way painted on a big inside-out sphere behind everything. */
+  private buildMilkyWay() {
+    const texture = this.track(makeMilkyWayTexture(mulberry32(7771)));
+    const geometry = this.track(new THREE.SphereGeometry(950, 48, 24));
+    const material = this.track(
+      new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide, transparent: true, opacity: 0.6, depthWrite: false, fog: false }),
+    );
+    this.milkyWay = new THREE.Mesh(geometry, material);
+    this.milkyWay.rotation.set(Math.PI / 2, 0.6, 0.35); // lets the band cross the overhead view
+    this.milkyWay.renderOrder = -10;
+    this.milkyWay.frustumCulled = false;
+    this.scene.add(this.milkyWay);
+  }
+
+  /** Planet names as plain HTML over the canvas; positions are updated each frame. */
+  private buildLabels() {
+    this.labelLayer = document.createElement('div');
+    this.labelLayer.className = 'planet-labels';
+    this.labelLayer.setAttribute('aria-hidden', 'true');
+    this.labelLayer.style.opacity = '0';
+    for (const p of PLANETS) {
+      const el = document.createElement('span');
+      el.textContent = p.name;
+      this.labelLayer.appendChild(el);
+      this.labelEls.push(el);
+    }
+    (this.canvas.parentElement ?? document.body).appendChild(this.labelLayer);
   }
 
   private buildRings() {
@@ -257,6 +339,13 @@ export class SolarScene {
     glow.scale.setScalar(SUN_VISUAL.radius * 5.2);
     this.scene.add(glow);
 
+    // A second, much wider and fainter halo for a richer corona.
+    this.sunHalo = new THREE.Sprite(
+      this.track(new THREE.SpriteMaterial({ map: glowTex, color: 0xff9a50, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.26 })),
+    );
+    this.sunHalo.scale.setScalar(SUN_VISUAL.radius * 11);
+    this.scene.add(this.sunHalo);
+
     this.applyTexture(SUN_VISUAL.texture, (tex) => {
       material.map = tex;
       material.color.set(0xffffff);
@@ -316,8 +405,28 @@ export class SolarScene {
         );
       }
 
+      const atmosphere = ATMOSPHERES[id];
+      if (atmosphere) {
+        this.glowTexture ??= this.track(makeGlowTexture());
+        const sprite = new THREE.Sprite(
+          this.track(
+            new THREE.SpriteMaterial({
+              map: this.glowTexture,
+              color: atmosphere.color,
+              opacity: atmosphere.opacity,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+              transparent: true,
+            }),
+          ),
+        );
+        sprite.scale.setScalar(v.radius * 2 * atmosphere.scale);
+        group.add(sprite);
+        node.glow = sprite;
+      }
+
       if (v.ring) {
-        this.buildPlanetRing(tilt, v);
+        this.buildPlanetRing(tilt, v, group);
       }
 
       this.scene.add(group);
@@ -325,7 +434,7 @@ export class SolarScene {
     });
   }
 
-  private buildPlanetRing(parent: THREE.Object3D, v: PlanetVisual) {
+  private buildPlanetRing(parent: THREE.Object3D, v: PlanetVisual, planet: THREE.Object3D) {
     if (!v.ring) return;
     const inner = v.radius * v.ring.innerScale;
     const outer = v.radius * v.ring.outerScale;
@@ -334,21 +443,62 @@ export class SolarScene {
     // a top-down picture of the ring disc, hole in the middle, transparent outside.
     const geometry = this.track(new THREE.RingGeometry(inner, outer, 128, 1));
 
+    const fallback = this.track(this.makeFallbackRingTexture());
     const material = this.track(
       new THREE.MeshBasicMaterial({
-        map: this.track(this.makeFallbackRingTexture()),
+        map: fallback,
         side: THREE.DoubleSide,
         transparent: true,
         depthWrite: false,
       }),
     );
+
+    // The planet's shadow falls on the rings: darken ring pixels whose line to the Sun hits the planet.
+    const ringUniforms = {
+      uPlanetCenter: { value: planet.position },
+      uPlanetRadius: { value: v.radius },
+      uShadowOn: { value: 1 },
+    };
+    this.ringShadowUniforms.push(ringUniforms);
+    material.customProgramCacheKey = () => 'solaris-ring-shadow';
+    material.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, ringUniforms);
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', `#include <common>\n${RING_VERTEX_DECL}`)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>\n${RING_VERTEX_SET}`);
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', `#include <common>\n${RING_FRAGMENT_DECL}`)
+        .replace('#include <opaque_fragment>', `${RING_FRAGMENT_SHADE}\n#include <opaque_fragment>`);
+    };
+
     const mesh = new THREE.Mesh(geometry, material);
     mesh.rotation.x = -Math.PI / 2;
     parent.add(mesh);
 
+    // The rings' shadow falls on the planet: a clear sphere that is black where the ring blocks the Sun.
+    const axes = ringAxes(v.tiltDeg);
+    const uniforms: Record<string, THREE.IUniform> = {
+      uCenter: { value: planet.position },
+      uAxis: { value: new THREE.Vector3(...axes.axis) },
+      uE1: { value: new THREE.Vector3(...axes.e1) },
+      uE2: { value: new THREE.Vector3(...axes.e2) },
+      uInner: { value: inner },
+      uOuter: { value: outer },
+      uOn: { value: 1 },
+      uRingMap: { value: fallback },
+    };
+    const shadowMesh = new THREE.Mesh(
+      this.sphere,
+      this.track(new THREE.ShaderMaterial({ uniforms, vertexShader: BODY_SHADOW_VERTEX, fragmentShader: BODY_SHADOW_FRAGMENT, transparent: true, depthWrite: false })),
+    );
+    shadowMesh.scale.setScalar(v.radius * 1.004);
+    parent.add(shadowMesh);
+    this.bodyShadows.push({ mesh: shadowMesh, uniforms });
+
     this.applyTexture(v.ring.texture, (tex) => {
       material.map = tex;
       material.needsUpdate = true;
+      uniforms.uRingMap.value = tex;
     });
   }
 
@@ -380,6 +530,81 @@ export class SolarScene {
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
+  }
+
+  /* ------------------------------------------------------------- settings */
+
+  private readonly onSettingsChange = () => this.applySettings();
+
+  private applySettings() {
+    const s = settingsCore.get();
+    const dpr = window.devicePixelRatio || 1;
+    const previousQuality = this.qualityMode;
+    this.settings = s;
+    this.qualityMode = s.quality;
+
+    if (s.quality === 'saver') this.fpsCap = true;
+    else if (previousQuality === 'saver' || previousQuality === 'high' || s.quality === 'high') this.fpsCap = false;
+    if (s.quality !== 'auto') this.lowPower = false;
+    if (s.quality !== previousQuality || this.lastStartView === null) {
+      this.pixelRatio = pixelRatioFor(s.quality, dpr);
+      this.resize();
+    }
+
+    this.reduceMotion = prefersReducedMotion(s.reduceMotion, this.motionQuery?.matches ?? false);
+
+    if (s.startView !== this.lastStartView) {
+      this.lastStartView = s.startView;
+      this.pitchIndex = START_VIEW_INDEX[s.startView];
+      this.pitchTarget = PITCH_PRESETS[this.pitchIndex];
+    }
+    this.refreshEffects();
+  }
+
+  private refreshEffects() {
+    const fx = effectiveEffects(this.settings, this.lowPower);
+    for (const p of this.planets) if (p.glow) p.glow.visible = fx.glow;
+    this.sunHalo.visible = fx.glow;
+    this.milkyWay.visible = fx.sky;
+    this.starMaterial.uniforms.uTwinkle.value = fx.sky && !this.reduceMotion ? 1 : 0;
+    for (const u of this.ringShadowUniforms) u.uShadowOn.value = fx.ringShadows ? 1 : 0;
+    for (const b of this.bodyShadows) {
+      b.mesh.visible = fx.ringShadows;
+      b.uniforms.uOn.value = fx.ringShadows ? 1 : 0;
+    }
+  }
+
+  private updateLabels() {
+    const op = labelOpacity(this.settings.labels, this.pitch, this.focusS);
+    if (op < 0.01) {
+      if (this.labelsVisible) {
+        this.labelLayer.style.opacity = '0';
+        this.labelsVisible = false;
+      }
+      return;
+    }
+    this.labelsVisible = true;
+    this.labelLayer.style.opacity = String(op);
+    const w = this.canvas.parentElement?.clientWidth ?? 1;
+    const h = this.canvas.parentElement?.clientHeight ?? 1;
+    const tanHalf = Math.tan((FOV_DEG * Math.PI) / 360);
+    const v = new THREE.Vector3();
+    this.planets.forEach((node, i) => {
+      v.copy(node.group.position);
+      const dist = this.camera.position.distanceTo(v);
+      v.project(this.camera);
+      const el = this.labelEls[i];
+      if (v.z > 1) {
+        el.style.opacity = '0';
+        return;
+      }
+      const radius = PLANET_VISUALS[PLANETS[i].id].radius;
+      const rpx = (radius / (dist * tanHalf)) * (h / 2);
+      const x = (v.x * 0.5 + 0.5) * w + rpx + 8;
+      const y = (-v.y * 0.5 + 0.5) * h;
+      el.style.opacity = '1';
+      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translateY(-50%)`;
+    });
   }
 
   /* ---------------------------------------------------------------- input */
@@ -432,6 +657,7 @@ export class SolarScene {
   }
 
   private cyclePitch() {
+    if (!this.settings.tapToTilt) return;
     this.pitchIndex = nextPitchIndex(this.pitchIndex);
     this.pitchTarget = PITCH_PRESETS[this.pitchIndex];
   }
@@ -481,6 +707,7 @@ export class SolarScene {
     const h = Math.max(1, parent.clientHeight);
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.setSize(w, h, false);
+    if (this.starMaterial) this.starMaterial.uniforms.uPx.value = this.pixelRatio;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.placeCamera();
@@ -592,15 +819,24 @@ export class SolarScene {
       });
     }
 
+    this.clock += dt;
+    this.starMaterial.uniforms.uTime.value = this.clock;
+    if (this.sunHalo.visible) {
+      (this.sunHalo.material as THREE.SpriteMaterial).opacity = 0.26 + (this.reduceMotion ? 0 : 0.04 * Math.sin(this.clock * 0.7));
+    }
+
     this.stepFocus(dt);
+    const spinMult = spinMultiplier(this.settings.spinSpeed);
 
     this.planets.forEach((p, i) => {
       // The planet you are looking at turns at a calm, readable speed.
-      const spin = i === this.focusIdx ? p.spin + (focusSpin(p.spin) - p.spin) * this.focusS : p.spin;
+      const base = i === this.focusIdx ? p.spin + (focusSpin(p.spin) - p.spin) * this.focusS : p.spin;
+      const spin = base * spinMult;
       p.body.rotation.y += spin * dt;
       if (p.clouds) p.clouds.mesh.rotation.y += (spin + p.clouds.drift) * dt;
     });
-    this.sun.rotation.y += this.sunSpin * dt;
+    this.sun.rotation.y += this.sunSpin * spinMult * dt;
+    this.updateLabels();
 
     // Ease the camera pitch toward its preset.
     const pDiff = this.pitchTarget - this.pitch;
@@ -617,6 +853,11 @@ export class SolarScene {
    * flip-flopping between tiers on a device that is borderline.
    */
   private adaptQuality(frameMs: number) {
+    if (this.qualityMode !== 'auto') {
+      this.frameAccum = 0;
+      this.frameCount = 0;
+      return;
+    }
     this.frameAccum += frameMs;
     this.frameCount++;
     if (this.frameCount < 90) return;
@@ -629,6 +870,8 @@ export class SolarScene {
       this.resize();
     } else if (avg > VERY_SLOW_FRAME_MS && !this.fpsCap) {
       this.fpsCap = true;
+      this.lowPower = true; // very slow: stop drawing the heavy extras
+      this.refreshEffects();
     }
   }
 
@@ -638,6 +881,9 @@ export class SolarScene {
     this.stop();
     this.resizeObserver.disconnect();
     this.tap.dispose();
+    this.unsubSettings?.();
+    this.motionQuery?.removeEventListener('change', this.onSettingsChange);
+    this.labelLayer.remove();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     this.canvas.removeEventListener('pointerup', this.onPointerUp);
     this.canvas.removeEventListener('pointercancel', this.onPointerCancel);

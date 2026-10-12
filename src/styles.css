@@ -180,6 +180,7 @@ body {
 
 .credits-backdrop {
   pointer-events: auto;
+  z-index: 8;
   position: fixed;
   inset: 0;
   display: grid;
@@ -1569,6 +1570,351 @@ body {
   .focus,
   .focus-text {
     animation: none;
+    transition: none;
+  }
+}
+
+/* ---- Button row above the dial, bottom right ---- */
+
+.hud-actions {
+  pointer-events: auto;
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 52px + 12px);
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+}
+
+.hud-actions.is-hidden {
+  display: none;
+}
+
+.hud-actions .discover-btn {
+  position: static;
+  transform: none;
+  min-height: 48px;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.settings-btn {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--ink);
+  background: rgba(10, 14, 30, 0.62);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  backdrop-filter: blur(14px);
+  cursor: pointer;
+}
+
+.settings-btn:hover,
+.hud-actions .discover-btn:hover {
+  color: #fff;
+  border-color: rgba(160, 176, 230, 0.5);
+}
+
+.settings-btn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.discover-sheet {
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 52px + 12px + 48px + 10px);
+}
+
+/* ---- Planet labels ---- */
+
+.planet-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.planet-labels span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font: 500 13px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0.02em;
+  color: #e9ecf8;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+  white-space: nowrap;
+  will-change: transform;
+}
+
+/* ---- Settings page ---- */
+
+.settings {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: #f3f1ec;
+  background: #05070d;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.s-top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 84px;
+  padding: max(16px, env(safe-area-inset-top)) 16px 0;
+  background: linear-gradient(180deg, #05070d 62%, transparent);
+  pointer-events: none;
+}
+
+.s-close {
+  pointer-events: auto;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: inherit;
+  background: rgba(12, 16, 28, 0.85);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.s-body {
+  max-width: 560px;
+  margin: -44px auto 0;
+  padding: 0 20px max(48px, env(safe-area-inset-bottom));
+}
+
+.s-body h1 {
+  margin: 0;
+  font: 400 clamp(40px, 12vw, 52px) / 1 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+}
+
+.s-sec {
+  margin: 30px 0 8px;
+  font: 400 28px/1.1 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+}
+
+.s-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 68px;
+  padding: 10px 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-top: 1px solid #1a2036;
+}
+
+.s-row.s-col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.s-link {
+  min-height: 60px;
+  cursor: pointer;
+}
+
+.s-lbl {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.s-help {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #a9b0c6;
+}
+
+.s-tg {
+  flex: none;
+  position: relative;
+  width: 52px;
+  height: 32px;
+  padding: 0;
+  background: #2a3150;
+  border: 0;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.s-tg::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #f3f1ec;
+  transition: left 0.2s;
+}
+
+.s-tg.on {
+  background: #ffb454;
+}
+
+.s-tg.on::after {
+  left: 23px;
+  background: #1a1100;
+}
+
+.s-seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: #0c1018;
+  border-radius: 24px;
+}
+
+.s-seg button {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 6px;
+  font: 500 15px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: #a9b0c6;
+  background: none;
+  border: 0;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.s-seg button.on {
+  font-weight: 600;
+  color: #05070d;
+  background: #f3f1ec;
+}
+
+.settings input[type='range'] {
+  width: 100%;
+  accent-color: #ffb454;
+}
+
+.s-keyrow {
+  display: flex;
+  gap: 8px;
+}
+
+.s-field {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  padding: 0 14px;
+  font: 16px 'SF Mono', Menlo, Consolas, monospace;
+  color: #f3f1ec;
+  background: #0c1018;
+  border: 1px solid #2a3150;
+  border-radius: 14px;
+}
+
+.s-field[aria-invalid='true'] {
+  border-color: #b3261e;
+}
+
+.s-btn {
+  min-width: 84px;
+  min-height: 44px;
+  padding: 0 18px;
+  font: 500 15px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: #f3f1ec;
+  background: #1a2036;
+  border: 0;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.s-keyrow .s-btn {
+  height: 52px;
+}
+
+.s-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.s-note {
+  font-size: 14px;
+  color: #a9b0c6;
+}
+
+.s-note.good {
+  color: #7fe0b0;
+}
+
+.s-note.bad {
+  color: #ff9a9a;
+}
+
+.s-reset {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 18px;
+  font: 500 16px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: #ff9a9a;
+  background: none;
+  border: 1px solid #5a2a2a;
+  border-radius: 26px;
+  cursor: pointer;
+}
+
+.s-foot {
+  margin: 14px 0 0;
+  font-size: 14px;
+  text-align: center;
+  color: #a9b0c6;
+}
+
+.settings button:focus-visible,
+.settings input:focus-visible {
+  outline: 2px solid #ffb454;
+  outline-offset: 2px;
+}
+
+/* Wide screens: a side panel, so the solar system stays visible while you change things. */
+@media (min-aspect-ratio: 1/1) {
+  .settings {
+    left: auto;
+    width: min(440px, 100%);
+    background: rgba(5, 7, 13, 0.94);
+    border-left: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+  }
+  .s-top {
+    background: linear-gradient(180deg, rgba(5, 7, 13, 0.94) 62%, transparent);
+  }
+}
+
+/* "Reduce motion: On" in Settings: stop every UI animation. */
+html[data-motion='reduce'] *,
+html[data-motion='reduce'] *::before,
+html[data-motion='reduce'] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s-tg,
+  .s-tg::after {
     transition: none;
   }
 }

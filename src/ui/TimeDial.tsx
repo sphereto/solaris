@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { MAX_OFFSET_DAYS } from '../ephemeris/planets';
+import { settingsCore } from '../state/settingsCore';
+import { DIAL_MULTIPLIER } from '../state/settingsMath';
 import { timeStore, useTargetOffset } from '../state/time';
 
 /** Ruler spacing on screen: one tick per day. */
@@ -43,7 +45,7 @@ export function TimeDial() {
     const dt = Math.max(1, e.timeStamp - d.lastT);
     const speed = Math.abs(dx) / dt; // px per ms
     const gain = 1 + Math.min(8, speed * 3);
-    const days = -dx * DAYS_PER_PX * gain;
+    const days = -dx * DAYS_PER_PX * gain * DIAL_MULTIPLIER[settingsCore.get().dialSpeed];
     timeStore.nudge(days);
     d.velocity = 0.8 * d.velocity + 0.2 * (days / dt); // days per ms
     d.lastX = e.clientX;

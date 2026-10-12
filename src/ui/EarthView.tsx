@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { formatDistance, formatLatLon } from '../discover/epic';
+import { formatLatLon } from '../discover/epic';
+import { millionKm } from '../discover/units';
+import { useSettings } from '../state/useSettings';
 import { localIso } from '../discover/nasa';
 import { useEarth } from '../discover/useEarth';
 import { ErrorNote } from './ErrorNote';
@@ -8,6 +10,7 @@ import { useDebounced } from './useDebounced';
 
 /** Full-disc Earth pictures from DSCOVR for the date the dial is pointing at. */
 export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () => void; onJump: (isoDate: string) => void }) {
+  const { units, saveData } = useSettings();
   const requested = useDebounced(localIso(shown), 350);
   const [pick, setPick] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -84,11 +87,11 @@ export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () =
       {hero && (hero.lat !== null || hero.distanceKm !== null) && (
         <p className="facts">
           {hero.lat !== null && hero.lon !== null && <span>Centred on {formatLatLon(hero.lat, hero.lon)}</span>}
-          {hero.distanceKm !== null && <span>Camera {formatDistance(hero.distanceKm)} from Earth</span>}
+          {hero.distanceKm !== null && <span>Camera {millionKm(hero.distanceKm, units)} from Earth</span>}
         </p>
       )}
 
-      {images.length > 1 && (
+      {images.length > 1 && !saveData && (
         <div className="chips">
           <button className={`chip${playing ? ' on' : ''}`} onClick={() => setPlaying((p) => !p)} aria-pressed={playing}>
             {playing ? 'Pause' : 'Play the day'}

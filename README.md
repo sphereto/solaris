@@ -32,7 +32,7 @@
 | 🔭 [The science in five minutes](#science) | 🗺️ [Roadmap](#roadmap) |
 | 📋 [The planets at a glance](#planets) | 📖 [Glossary](#glossary) |
 | 🛠️ [Run it yourself](#develop) | 📜 [License and credits](#credits) |
-| 🛰️ [Discover: NASA pictures and data](#discover) | |
+| 🛰️ [Discover: NASA pictures and data](#discover) | ⚙️ [Settings](#settings) |
 
 <a id="what"></a>
 ## 🌌 What is Solaris?
@@ -74,6 +74,8 @@ It is made for people who like orbital mechanics: students meeting Kepler for th
 | **← / →** (or ↓ / ↑) | One day back or forward. **Shift** = 30 days, **Alt** = 365 days |
 | **Home** | Back to today |
 | **Tap the day counter** (bottom left) | Back to today |
+| **Discover more** (above the dial, right) | Opens live NASA pictures and data |
+| **Settings button** (next to it) | Opens every setting: effects, motion, time, NASA key, units |
 
 **Reading the screen**
 
@@ -311,7 +313,7 @@ The **Discover more** button above the dial opens a sheet of live NASA material.
 **Setting up your NASA key**
 
 1. Get a free key at [api.nasa.gov](https://api.nasa.gov/).
-2. Locally, create `.env.local` with `VITE_NASA_API_KEY=your_key`. Without it the app falls back to NASA's shared `DEMO_KEY`, which runs out quickly.
+2. Easiest: paste it into **Settings → NASA data → Your NASA key** and press **Test**. It stays on that device. Or, for a build, create `.env.local` with `VITE_NASA_API_KEY=your_key`. With neither, the app falls back to NASA's shared `DEMO_KEY`, which runs out quickly.
 3. For the deployed site, add a repository secret named `NASA_API_KEY` (*Settings → Secrets and variables → Actions*). The Deploy workflow passes it to the build.
 
 The key is built into the page, so anyone can read it from the deployed site. NASA keys are free and rate limited; do not reuse one that matters.
@@ -319,6 +321,23 @@ The key is built into the page, so anyone can read it from the deployed site. NA
 **Exoplanet data** is downloaded at build time, because the Exoplanet Archive does not allow requests from web pages. Run `pnpm data:exoplanets` (Node 22.18 or newer) and commit `src/data/exoplanets.json`. The Deploy workflow also refreshes it on every deploy and every Monday, and keeps the committed copy if the download fails.
 
 **Not included:** NASA's Mars Rover Photos service no longer exists, and DONKI space weather does not answer browser requests, so neither is used.
+
+<a id="settings"></a>
+## ⚙️ Settings
+
+The slider icon next to **Discover more** opens one scrolling page. Every change applies at once and is saved on the device.
+
+| Section | What you can change |
+|---|---|
+| **Look** | Atmosphere glow around planets · Saturn's ring shadows · twinkling stars and Milky Way · planet labels (off, when tilted, always) · graphics quality (Auto, High, Saver) |
+| **Motion** | Planet spin speed · dial speed · start view · tap empty space to tilt · reduce motion |
+| **Time** | Date format (MM/DD/YY, DD/MM/YY, YYYY-MM-DD) · 12 or 24 hour clock |
+| **NASA data** | Your own NASA key with a **Test** button · kilometres or miles · save data · clear saved pictures |
+| **About** | Credits · version · reset everything |
+
+**Graphics quality.** *Auto* lowers the render resolution and then the frame rate when the device struggles, and if it has to cap the frame rate it also stops drawing the ring shadows, Milky Way and twinkling. *High* never lowers anything and allows a sharper picture. *Saver* draws at normal resolution, caps at about 30 frames a second and turns the glow, ring shadows and sky effects off.
+
+**How the extras are drawn.** Atmosphere glow is a soft ring sprite behind each planet. Saturn's ring shadows are computed per pixel: the planet darkens the part of the rings behind it, and the rings darken a band on the planet. The twinkling stars are one draw call. The Milky Way is a texture painted once at start-up.
 
 <a id="honest"></a>
 ## 🎯 What is real, what is not
@@ -348,6 +367,7 @@ The key is built into the page, so anyone can read it from the deployed site. NA
 - [x] Tap to tilt, double-tap to reset
 - [x] Installable and offline-ready
 - [x] Discover: NASA pictures, Earth, the Sun, asteroids, image search and exoplanets
+- [x] Settings page, atmosphere glow, Saturn's ring shadows, Milky Way, twinkling stars and planet labels
 - [ ] Discover: Mars rover photos (needs a new data source)
 - [x] Tap a planet to zoom in, with its name, distance and day and year lengths
 - [ ] Play / pause time, and jump to a typed date

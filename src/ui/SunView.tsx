@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { localIso } from '../discover/nasa';
 import { SDO_CHANNELS, type SdoChannel, freshBucket, kpLabel, sdoUrl, utcTime } from '../discover/sun';
 import { useSun } from '../discover/useSun';
+import { useSettings } from '../state/useSettings';
 import { PhotoViewer, type ViewerItem } from './PhotoViewer';
 
 /** Live pictures of the Sun and current space weather. Not tied to the dial. */
@@ -9,13 +10,15 @@ export function SunView({ onBack, onJump, offsetDays }: { onBack: () => void; on
   const [channel, setChannel] = useState<SdoChannel>('0304');
   const [viewing, setViewing] = useState(false);
   const { data } = useSun();
+  const { saveData } = useSettings();
+  const size = saveData ? 512 : 1024;
   const bucket = useMemo(() => freshBucket(), []);
   const info = SDO_CHANNELS.find((c) => c.id === channel)!;
 
   const items = useMemo<ViewerItem[]>(
     () => [
       {
-        src: sdoUrl(channel, 1024, bucket),
+        src: sdoUrl(channel, size, bucket),
         title: info.label,
         kicker: 'The Sun now · SDO',
         caption: info.note,
@@ -24,7 +27,7 @@ export function SunView({ onBack, onJump, offsetDays }: { onBack: () => void; on
         link: sdoUrl(channel, 4096, bucket),
       },
     ],
-    [channel, bucket, info],
+    [channel, bucket, info, size],
   );
 
   return (
@@ -36,7 +39,7 @@ export function SunView({ onBack, onJump, offsetDays }: { onBack: () => void; on
       </button>
 
       <div className="apod-frame earth-hero">
-        <img key={channel} src={sdoUrl(channel, 1024, bucket)} alt={`The Sun in ${info.label.toLowerCase()} light, live from NASA SDO`} decoding="async" />
+        <img key={channel} src={sdoUrl(channel, size, bucket)} alt={`The Sun in ${info.label.toLowerCase()} light, live from NASA SDO`} decoding="async" />
         <div className="apod-shade" />
         <button className="hero-open" onClick={() => setViewing(true)} aria-label="View picture full screen" />
         <div className="apod-caption">

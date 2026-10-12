@@ -1,4 +1,5 @@
 import { Body, EclipticLongitude, HelioDistance } from 'astronomy-engine';
+import { type ClockFormat, type DateFormat, settingsCore } from '../state/settingsCore';
 
 /**
  * Pure date -> planet position layer. No React, no Three.js, so it can be
@@ -58,19 +59,23 @@ export function planetStates(date: Date): PlanetState[] {
   }));
 }
 
-/** MM/DD/YY in the viewer's local time zone. */
-export function formatDate(date: Date): string {
+/** The viewer's local date, as MM/DD/YY by default (the date format setting can change it). */
+export function formatDate(date: Date, format: DateFormat = settingsCore.get().dateFormat): string {
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
   const yy = String(date.getFullYear() % 100).padStart(2, '0');
-  return `${mm}/${dd}/${yy}`;
+  if (format === 'iso') return `${date.getFullYear()}-${mm}-${dd}`;
+  return format === 'dmy' ? `${dd}/${mm}/${yy}` : `${mm}/${dd}/${yy}`;
 }
 
-/** HH:MM, 24 hour, local time zone. */
-export function formatClock(date: Date): string {
-  const hh = String(date.getHours()).padStart(2, '0');
+/** HH:MM in the local time zone, 24 hour by default (the clock setting can switch to 12 hour). */
+export function formatClock(date: Date, clock: ClockFormat = settingsCore.get().clock): string {
   const mi = String(date.getMinutes()).padStart(2, '0');
-  return `${hh}:${mi}`;
+  if (clock === '12') {
+    const h = date.getHours() % 12 || 12;
+    return `${h}:${mi} ${date.getHours() < 12 ? 'AM' : 'PM'}`;
+  }
+  return `${String(date.getHours()).padStart(2, '0')}:${mi}`;
 }
 
 /** "+120 days", "-1 day", or "today". */
