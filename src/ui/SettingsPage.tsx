@@ -295,7 +295,9 @@ export function SettingsPage({ onClose, onOpenCredits, suspended }: Props) {
           </button>
           <div className="s-row">
             <span className="s-lbl">Version</span>
-            <span className="s-help">{__APP_VERSION__}</span>
+            <span className="s-help">
+              {__APP_VERSION__} · build {__APP_BUILD__}
+            </span>
           </div>
           <button
             className="s-reset"

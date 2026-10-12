@@ -1,7 +1,7 @@
 {
   "name": "solaris",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.3.0",
   "description": "Overhead 3D solar system viewer. Scrub through dates and watch the planets move.",
   "license": "MIT",
   "type": "module",
