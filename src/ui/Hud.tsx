@@ -4,7 +4,7 @@ import { useFocusIndex, focusStore } from '../state/focus';
 import { useSettings } from '../state/useSettings';
 import { timeStore, useTargetOffset } from '../state/time';
 import { Credits } from './Credits';
-import { DiscoverSheet, type DiscoverStart } from './DiscoverSheet';
+import { Discover, type DiscoverStart } from './Discover';
 import { PlanetFocus } from './PlanetFocus';
 import { SettingsPage } from './SettingsPage';
 import { TimeDial } from './TimeDial';
@@ -22,7 +22,7 @@ function useNow(intervalMs: number): Date {
 function useDateControls() {
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
-      if ((e.target as HTMLElement | null)?.closest('.credits-panel, .discover-sheet, .viewer, .settings')) return;
+      if ((e.target as HTMLElement | null)?.closest('.credits-panel, .dv, .viewer, .settings')) return;
       e.preventDefault();
       if (focusStore.get() !== null) return; // zoomed in: the date stays put
       const clamped = Math.max(-240, Math.min(240, e.deltaY));
@@ -30,7 +30,7 @@ function useDateControls() {
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) return;
-      if ((e.target as HTMLElement | null)?.closest?.('input, textarea, select, .settings')) return; // keys belong to the control
+      if ((e.target as HTMLElement | null)?.closest?.('input, textarea, select, .settings, .dv')) return; // keys belong to the control
       if (focusStore.get() !== null) return; // zoomed in: arrows change planet instead
       const step = e.altKey ? 365 : e.shiftKey ? 30 : 1;
       if (e.key === 'ArrowRight' || e.key === 'ArrowUp') timeStore.nudge(step);
@@ -102,26 +102,19 @@ export function Hud() {
         }}
       />
 
-      {showDiscover && <DiscoverSheet shown={shown} start={discoverStart} onClose={() => setShowDiscover(false)} />}
-      <div className={`hud-actions${focus !== null && !showDiscover ? ' is-hidden' : ''}`}>
+      {showDiscover && <Discover shown={shown} start={discoverStart} onClose={() => setShowDiscover(false)} />}
+      <div className={`hud-actions${focus !== null || showDiscover ? ' is-hidden' : ''}`}>
         <button
-          className={`discover-btn${showDiscover ? ' is-open' : ''}`}
+          className="discover-btn"
           onClick={() => {
             setDiscoverStart(null);
-            setShowDiscover((o) => !o);
+            setShowDiscover(true);
           }}
-          aria-expanded={showDiscover}
         >
-          {showDiscover ? (
-            'Close'
-          ) : (
-            <>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <path d="M3 15l12-7 2 4-12 7zM15 8l5-3M9 18l-2 3M12 16l3 5" />
-              </svg>
-              Discover more
-            </>
-          )}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path d="M3 15l12-7 2 4-12 7zM15 8l5-3M9 18l-2 3M12 16l3 5" />
+          </svg>
+          Discover more
         </button>
         <button className="settings-btn" onClick={() => setShowSettings(true)} aria-label="Settings">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">

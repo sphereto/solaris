@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { formatLatLon } from '../discover/epic';
-import { millionKm } from '../discover/units';
-import { useSettings } from '../state/useSettings';
 import { localIso } from '../discover/nasa';
+import { millionKm } from '../discover/units';
 import { useEarth } from '../discover/useEarth';
+import { useSettings } from '../state/useSettings';
 import { ErrorNote } from './ErrorNote';
+import { FrameTimeline } from './FrameTimeline';
 import { PhotoViewer, type ViewerItem } from './PhotoViewer';
 import { useDebounced } from './useDebounced';
 
-/** Full-disc Earth pictures from DSCOVR for the date the dial is pointing at. */
-export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () => void; onJump: (isoDate: string) => void }) {
+/** Earth as DSCOVR sees it: the whole disc, the time, and the day's pictures on a timeline. */
+export function EarthView({ shown, onJump }: { shown: Date; onJump: (isoDate: string) => void }) {
   const { units, saveData } = useSettings();
   const requested = useDebounced(localIso(shown), 350);
   const [pick, setPick] = useState(0);
@@ -17,11 +18,12 @@ export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () =
   const [viewing, setViewing] = useState(false);
   const { date, images, busy, error, retry } = useEarth(requested);
 
+  // Start on the newest picture of the day.
   useEffect(() => {
-    setPick(0);
+    setPick(Math.max(0, images.length - 1));
     setPlaying(false);
     setViewing(false);
-  }, [date]);
+  }, [date, images.length]);
 
   // Play the day: Earth turning, one picture at a time.
   useEffect(() => {
@@ -49,19 +51,12 @@ export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () =
   );
 
   return (
-    <div className="mars">
-      <button className="back-btn" onClick={onBack} aria-label="Back to Discover">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-      </button>
-
-      <div className={`apod-frame earth-hero${busy ? ' is-busy' : ''}`}>
-        {hero ? <img key={hero.name} src={hero.jpg} alt={`Earth at ${hero.time} UTC`} decoding="async" /> : <div className={`apod-empty${busy ? ' skeleton' : ''}`} aria-hidden="true" />}
-        <div className="apod-shade" />
+    <div className="dv-earth">
+      <div className={`dv-earth-hero${busy ? ' is-busy' : ''}`}>
+        {hero ? <img key={hero.name} src={hero.jpg} alt={`Earth at ${hero.time} UTC`} decoding="async" /> : <div className={`dv-hero-empty${busy ? ' skeleton' : ''}`} aria-hidden="true" />}
         {hero && (
           <button
-            className="hero-open"
+            className="dv-open"
             onClick={() => {
               setPlaying(false);
               setViewing(true);
@@ -69,59 +64,47 @@ export function EarthView({ shown, onBack, onJump }: { shown: Date; onBack: () =
             aria-label="View picture full screen"
           />
         )}
-        <div className="apod-caption">
-          <span className="apod-kicker">DSCOVR · {hero?.date ?? date ?? requested}</span>
-          <h3>{hero ? `${hero.time} UTC` : error ? 'Not available' : 'Loading…'}</h3>
-        </div>
-      </div>
-
-      <div className="mars-meta">
-        <h2>Earth today</h2>
-        <p>
-          {date ?? requested} · {images.length} pictures
-          {moved && ' · nearest day with pictures'}
-        </p>
-      </div>
-      {error && !busy && <ErrorNote message={error} onRetry={retry} />}
-
-      {hero && (hero.lat !== null || hero.distanceKm !== null) && (
-        <p className="facts">
-          {hero.lat !== null && hero.lon !== null && <span>Centred on {formatLatLon(hero.lat, hero.lon)}</span>}
-          {hero.distanceKm !== null && <span>Camera {millionKm(hero.distanceKm, units)} from Earth</span>}
-        </p>
-      )}
-
-      {images.length > 1 && !saveData && (
-        <div className="chips">
-          <button className={`chip${playing ? ' on' : ''}`} onClick={() => setPlaying((p) => !p)} aria-pressed={playing}>
-            {playing ? 'Pause' : 'Play the day'}
+        {images.length > 1 && !saveData && (
+          <button className="dv-play" onClick={() => setPlaying((p) => !p)} aria-label={playing ? 'Pause' : 'Play the day'} aria-pressed={playing}>
+            {playing ? (
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
+              </svg>
+            ) : (
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
           </button>
-        </div>
-      )}
-
-      {busy && images.length === 0 && (
-        <div className="thumbs four" aria-hidden="true">
-          {Array.from({ length: 8 }, (_, i) => (
-            <span key={i} className="skeleton sk-thumb" />
-          ))}
-        </div>
-      )}
-      <div className="thumbs four">
-        {images.map((i, n) => (
-          <button
-            key={i.name}
-            className={n === pick ? 'on' : ''}
-            onClick={() => {
-              setPlaying(false);
-              setPick(n);
-            }}
-            aria-label={`Earth at ${i.time} UTC`}
-          >
-            <img src={i.thumb} alt="" loading="lazy" decoding="async" />
-          </button>
-        ))}
+        )}
       </div>
-      <p className="apod-credit">NASA / NOAA / DSCOVR EPIC</p>
+
+      <div className="dv-text">
+        <div className="dv-kicker">Earth today</div>
+        <h1>{hero ? `${hero.time} UTC` : error ? 'Not available' : 'Loading…'}</h1>
+        {hero && hero.lat !== null && hero.lon !== null && <p className="dv-sub">Centred on {formatLatLon(hero.lat, hero.lon)}</p>}
+        {moved && <p className="dv-note">No pictures on this date, so this is the nearest day ({date}).</p>}
+        {error && !busy && <ErrorNote message={error} onRetry={retry} />}
+
+        {hero && (
+          <div className="dv-stats">
+            {hero.distanceKm !== null && (
+              <div>
+                <strong>{millionKm(hero.distanceKm, units)}</strong>
+                <span>camera to Earth</span>
+              </div>
+            )}
+            <div>
+              <strong>{images.length}</strong>
+              <span>pictures that day</span>
+            </div>
+          </div>
+        )}
+
+        {images.length > 1 && <FrameTimeline times={images.map((i) => i.time)} value={Math.min(pick, images.length - 1)} onChange={(i) => (setPlaying(false), setPick(i))} />}
+        <p className="dv-credit">NASA / NOAA / DSCOVR EPIC</p>
+      </div>
+
       {viewing && items.length > 0 && <PhotoViewer items={items} index={Math.min(pick, items.length - 1)} onIndex={setPick} onClose={() => setViewing(false)} onJump={onJump} />}
     </div>
   );
