@@ -17,7 +17,7 @@ import { useDebounced } from './useDebounced';
 type ListKey = 'newest' | 'nearest' | 'earth' | 'year';
 
 /** The planet's orbit next to Earth's, on a log scale. Decorative: the real numbers are listed below. */
-export function OrbitDiagram({ p }: { p: Planet }) {
+function OrbitDiagram({ p }: { p: Planet }) {
   const cx = 180;
   const cy = 120;
   const earth = orbitRadiusPx(1);
@@ -46,7 +46,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 /** Planets beyond the Sun, from a data snapshot made at build time. */
-export function ExoplanetView({ shown }: { shown: Date }) {
+export function ExoplanetView({ shown, onBack }: { shown: Date; onBack: () => void }) {
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [key, setKey] = useState<ListKey>('newest');
   const [pick, setPick] = useState(0);
@@ -70,6 +70,11 @@ export function ExoplanetView({ shown }: { shown: Date }) {
 
   return (
     <div className="mars">
+      <button className="back-btn neo-back" onClick={onBack} aria-label="Back to Discover">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M15 6l-6 6 6 6" />
+        </svg>
+      </button>
 
       <div className="mars-meta neo-title">
         <h2>Exoplanets</h2>

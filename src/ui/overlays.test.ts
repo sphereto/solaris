@@ -20,7 +20,7 @@ describe('tappable overlays inside the HUD', () => {
     expect(ruleBody('.hud')).toMatch(/pointer-events:\s*none/);
   });
 
-  for (const selector of ['.settings', '.dv', '.credits-backdrop', '.hud-actions', '.focus-pill', '.focus-cta']) {
+  for (const selector of ['.settings', '.discover-sheet', '.credits-backdrop', '.hud-actions', '.focus-pill', '.focus-cta']) {
     it(`${selector} catches its own taps`, () => {
       expect(ruleBody(selector)).toMatch(/pointer-events:\s*auto/);
     });
