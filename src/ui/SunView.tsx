@@ -3,10 +3,12 @@ import { localIso } from '../discover/nasa';
 import { SDO_CHANNELS, type SdoChannel, freshBucket, kpLabel, sdoUrl, utcTime } from '../discover/sun';
 import { useSun } from '../discover/useSun';
 import { useSettings } from '../state/useSettings';
+import { useTargetOffset } from '../state/time';
 import { PhotoViewer, type ViewerItem } from './PhotoViewer';
 
 /** Live pictures of the Sun and current space weather. Not tied to the dial. */
-export function SunView({ onBack, onJump, offsetDays }: { onBack: () => void; onJump: (isoDate: string) => void; offsetDays: number }) {
+export function SunView({ onJump }: { onJump: (isoDate: string) => void }) {
+  const offsetDays = Math.round(useTargetOffset());
   const [channel, setChannel] = useState<SdoChannel>('0304');
   const [viewing, setViewing] = useState(false);
   const { data } = useSun();
@@ -32,11 +34,6 @@ export function SunView({ onBack, onJump, offsetDays }: { onBack: () => void; on
 
   return (
     <div className="mars">
-      <button className="back-btn" onClick={onBack} aria-label="Back to Discover">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-      </button>
 
       <div className="apod-frame earth-hero">
         <img key={channel} src={sdoUrl(channel, size, bucket)} alt={`The Sun in ${info.label.toLowerCase()} light, live from NASA SDO`} decoding="async" />

@@ -9,7 +9,7 @@ const TOPICS = ['Galaxies', 'Nebulae', 'Moon', 'Mars', 'Aurora', 'Space Station'
 const PAGE = 12;
 
 /** Search NASA's picture archive. Optionally limited to the year on the dial. */
-export function LibraryView({ shown, onBack, onJump, initialQuery }: { shown: Date; onBack: () => void; onJump: (isoDate: string) => void; initialQuery?: string }) {
+export function LibraryView({ shown, onJump, initialQuery }: { shown: Date; onJump: (isoDate: string) => void; initialQuery?: string }) {
   const { saveData } = useSettings();
   const dialYear = shown.getFullYear();
   const [query, setQuery] = useState(initialQuery ?? 'Galaxies');
@@ -44,11 +44,6 @@ export function LibraryView({ shown, onBack, onJump, initialQuery }: { shown: Da
 
   return (
     <div className="mars">
-      <button className="back-btn neo-back" onClick={onBack} aria-label="Back to Discover">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-      </button>
 
       <div className="mars-meta neo-title">
         <h2>Image library</h2>

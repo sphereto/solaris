@@ -299,7 +299,7 @@ pnpm preview      # serve the production build locally
 <a id="discover"></a>
 ## 🛰️ Discover: NASA pictures and data
 
-The **Discover more** button above the dial opens a sheet of live NASA material. Most of it follows the date on the dial.
+The **Discover more** button above the dial opens a full-screen feed of live NASA material. It starts with the Picture of the Day, then a card each for Earth, the Sun, the closest asteroid, the newest exoplanet and the image library. Tap a card for its own full screen. The date at the top is the dial: tap it to open a date sheet (a scrubber, plus Today, 1 month ago and 1 year ago) and everything on screen follows. The magnifier searches NASA's pictures from anywhere. Most of it follows the date on the dial.
 
 | Tile | What it shows | Follows the dial? | Source |
 |---|---|---|---|
